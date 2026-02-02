@@ -1,9 +1,9 @@
 import streamlit as st
 
-# Configuración inicial
-st.set_page_config(page_title="DataAPI Dashboard", layout="wide", initial_sidebar_state="collapsed")
+# Configuración básica
+st.set_page_config(page_title="DataAPI Dashboard", layout="wide")
 
-# Estilo visual de tarjetas (Dashboard)
+# Estilo para evitar errores de IDs duplicados (Imagen 492219)
 st.markdown("""
     <style>
     .stApp { background-color: #0e1117; }
@@ -13,53 +13,53 @@ st.markdown("""
         border-radius: 15px;
         padding: 20px;
         text-align: center;
-        margin-bottom: 10px;
     }
     </style>
     """, unsafe_allow_html=True)
 
-# Lógica de Login
+# Login
 if 'autenticado' not in st.session_state:
     st.session_state['autenticado'] = False
 
 if not st.session_state['autenticado']:
-    c1, c2, c3 = st.columns([1, 1, 1])
-    with c2:
+    _, col, _ = st.columns([1, 1, 1])
+    with col:
         st.title("🔐 Acceso")
-        user = st.text_input("Usuario")
-        passw = st.text_input("Contraseña", type="password")
-        if st.button("INGRESAR SISTEMA"):
-            if user == "admin" and passw == "666":
+        u = st.text_input("Usuario")
+        p = st.text_input("Contraseña", type="password")
+        if st.button("INGRESAR"):
+            if u == "admin" and p == "666":
                 st.session_state['autenticado'] = True
                 st.rerun()
             else:
                 st.error("Credenciales incorrectas")
     st.stop()
 
-# --- PANEL DE CONTROL ---
+# Dashboard
 st.title("🚀 Panel de Control")
 st.markdown("---")
 
-col1, col2, col3 = st.columns(3)
+c1, c2, c3 = st.columns(3)
 
-with col1:
+with c1:
     st.markdown('<div class="module-card">', unsafe_allow_html=True)
     st.subheader("👤 Personas")
-    # Redirigimos al nombre de archivo que pusiste en GitHub
-    if st.button("ABRIR MÓDULO", key="btn_personas"):
-        st.switch_page("pages/Personas.py")
+    # Intentamos la ruta directa. Si falla, Streamlit nos dirá por qué.
+    if st.button("ABRIR MÓDULO", key="btn_p"):
+        try:
+            st.switch_page("pages/Personas.py")
+        except Exception as e:
+            st.error(f"No se encontró el archivo: pages/Personas.py. Verifique el nombre en GitHub.")
     st.markdown('</div>', unsafe_allow_html=True)
 
-with col2:
+with c2:
     st.markdown('<div class="module-card">', unsafe_allow_html=True)
     st.subheader("📞 Teléfonos")
-    # La KEY "btn_tel" soluciona el error DuplicateElementId
-    st.button("PRÓXIMAMENTE", disabled=True, key="btn_tel")
+    st.button("PRÓXIMAMENTE", disabled=True, key="btn_t")
     st.markdown('</div>', unsafe_allow_html=True)
 
-with col3:
+with c3:
     st.markdown('<div class="module-card">', unsafe_allow_html=True)
     st.subheader("🚗 Vehicular")
-    # La KEY "btn_veh" soluciona el error DuplicateElementId
-    st.button("PRÓXIMAMENTE", disabled=True, key="btn_veh")
+    st.button("PRÓXIMAMENTE", disabled=True, key="btn_v")
     st.markdown('</div>', unsafe_allow_html=True)
