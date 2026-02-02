@@ -1,41 +1,63 @@
 import streamlit as st
 import requests
 
-# 1. Configuración y Seguridad
-st.set_page_config(page_title="DataAPI - Consulta Premium", layout="wide")
+# 1. Configuración de página
+st.set_page_config(page_title="DataAPI - Ficha de Persona", layout="wide")
 
-if not st.session_state.get('auth', False):
-    st.error("⚠️ Acceso denegado.")
-    st.stop()
-
-# Estilo para los "cajoncitos" de información
+# 2. Estilo CSS para los "Cajoncitos" (Diseño idéntico a la original)
 st.markdown("""
     <style>
-    .info-box {
+    .stApp { background-color: #0e1117; }
+    .info-container {
         background-color: #161b22;
         border: 1px solid #30363d;
         border-radius: 8px;
-        padding: 15px;
+        padding: 12px;
         margin-bottom: 10px;
+        min-height: 60px;
     }
-    .label { color: #8b949e; font-size: 12px; margin-bottom: 5px; }
-    .value { color: #ffffff; font-size: 16px; font-weight: bold; }
+    .info-label {
+        color: #8b949e;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        margin-bottom: 4px;
+    }
+    .info-value {
+        color: #ffffff;
+        font-size: 1rem;
+        font-weight: 600;
+    }
+    .foto-box {
+        border: 2px solid #30363d;
+        border-radius: 10px;
+        padding: 5px;
+        background-color: #000;
+        text-align: center;
+    }
     </style>
     """, unsafe_allow_html=True)
 
-st.title("👤 Consulta de Persona - Premium")
+if not st.session_state.get('auth', False):
+    st.warning("⚠️ Sesión no iniciada")
+    st.stop()
 
-# Selector de tipo de búsqueda
-opcion = st.radio("Seleccione servicio:", ["DNI Premium", "Nombres (Próximamente)"], horizontal=True)
+# --- INTERFAZ DE BÚSQUEDA ---
+st.title("👤 Consulta de Persona")
 
-dni_input = st.text_input("Ingrese número de DNI:", max_chars=8)
+col_search1, col_search2 = st.columns([2, 1])
+with col_search1:
+    dni_input = st.text_input("Número de DNI:", max_chars=8, placeholder="8 dígitos...")
 
-if st.button("BUSCAR INFORMACIÓN"):
+with col_search2:
+    st.write("##") # Espaciador
+    buscar = st.button("BUSCAR AHORA", use_container_width=True)
+
+if buscar:
     if len(dni_input) == 8:
         TOKEN = "sk_live_104655a1666c3ea084ecc19f6b859a5fbb843f0aaac534ad"
         URL = "https://seeker-v6.com/personas/apiPremium/dni"
         
-        with st.spinner("Extrayendo datos de la base de datos..."):
+        with st.spinner("Generando ficha técnica..."):
             try:
                 r = requests.post(URL, headers={"Authorization": f"Bearer {TOKEN}"}, data={"dni": dni_input})
                 res = r.json()
@@ -43,68 +65,59 @@ if st.button("BUSCAR INFORMACIÓN"):
                 if res.get("status") == "success":
                     data = res.get("data", {})
                     
-                    st.success("Resultados encontrados")
+                    st.success("Información recuperada con éxito")
                     st.markdown("---")
                     
-                    # --- DISEÑO DE LA INFORMACIÓN (Como la página original) ---
-                    col_foto, col_datos = st.columns([1, 3])
+                    # --- DISEÑO DE LA FICHA ---
+                    col_izq, col_der = st.columns([1, 3])
                     
-                    with col_foto:
-                        st.subheader("📷 Fotografía")
-                        # Intentamos mostrar la foto. La API suele enviarla en 'foto' o 'foto_base64'
-                        foto_data = data.get("foto") or data.get("foto_base64")
-                        if foto_data:
-                            # Si es base64, Streamlit lo reconoce así:
-                            if "data:image" in str(foto_data):
-                                st.image(foto_data, width=200)
-                            else:
-                                st.image(foto_data, width=200)
+                    with col_izq:
+                        st.markdown('<div class="foto-box">', unsafe_allow_html=True)
+                        foto = data.get("foto") or data.get("foto_base64")
+                        if foto:
+                            st.image(foto, use_container_width=True)
                         else:
-                            st.warning("Foto no disponible")
+                            st.write("📷 SIN FOTO")
+                        st.markdown('</div>', unsafe_allow_html=True)
+                        st.markdown(f"**DNI: {dni_input}**")
 
-                    with col_datos:
-                        st.subheader("📝 Datos Personales")
-                        # Creamos los cajoncitos en cuadrícula
-                        c1, c2, c3 = st.columns(3)
+                    with col_der:
+                        # Fila 1: Nombres y Apellidos
+                        f1c1, f1c2, f1c3 = st.columns(3)
+                        for col, lab, val in zip([f1c1, f1c2, f1c3], 
+                                               ["NOMBRES", "APELLIDO PATERNO", "APELLIDO MATERNO"],
+                                               [data.get("nombres"), data.get("apellido_paterno"), data.get("apellido_materno")]):
+                            col.markdown(f'<div class="info-container"><div class="info-label">{lab}</div><div class="info-value">{val or "---"}</div></div>', unsafe_allow_html=True)
                         
-                        fields = [
-                            ("NOMBRES", data.get("nombres")),
-                            ("APELLIDO PATERNO", data.get("apellido_paterno")),
-                            ("APELLIDO MATERNO", data.get("apellido_materno")),
-                            ("FECHA NACIMIENTO", data.get("fecha_nacimiento")),
-                            ("ESTADO CIVIL", data.get("estado_civil")),
-                            ("SEXO", data.get("sexo")),
-                            ("UBIGEO", data.get("ubigeo_nacimiento")),
-                            ("DEPARTAMENTO", data.get("departamento")),
-                            ("PROVINCIA", data.get("provincia")),
-                            ("DISTRITO", data.get("distrito")),
-                            ("DIRECCIÓN", data.get("direccion")),
-                        ]
-                        
-                        # Distribución automática en cajoncitos
-                        for i, (label, value) in enumerate(fields):
-                            target_col = [c1, c2, c3][i % 3]
-                            target_col.markdown(f"""
-                                <div class="info-box">
-                                    <div class="label">{label}</div>
-                                    <div class="value">{value if value else '---'}</div>
-                                </div>
-                            """, unsafe_allow_html=True)
-                            
-                    # Datos de los padres (Si la API los da)
-                    if data.get("nombre_padre") or data.get("nombre_madre"):
-                        st.markdown("---")
-                        st.subheader("👪 Datos Familiares")
-                        f1, f2 = st.columns(2)
-                        f1.markdown(f'<div class="info-box"><div class="label">PADRE</div><div class="value">{data.get("nombre_padre")}</div></div>', unsafe_allow_html=True)
-                        f2.markdown(f'<div class="info-box"><div class="label">MADRE</div><div class="value">{data.get("nombre_madre")}</div></div>', unsafe_allow_html=True)
+                        # Fila 2: Nacimiento y Estado
+                        f2c1, f2c2, f2c3 = st.columns(3)
+                        for col, lab, val in zip([f2c1, f2c2, f2c3], 
+                                               ["FECHA NACIMIENTO", "ESTADO CIVIL", "SEXO"],
+                                               [data.get("fecha_nacimiento"), data.get("estado_civil"), data.get("sexo")]):
+                            col.markdown(f'<div class="info-container"><div class="info-label">{lab}</div><div class="info-value">{val or "---"}</div></div>', unsafe_allow_html=True)
+
+                        # Fila 3: Ubicación
+                        f3c1, f3c2, f3c3 = st.columns(3)
+                        for col, lab, val in zip([f3c1, f3c2, f3c3], 
+                                               ["DEPARTAMENTO", "PROVINCIA", "DISTRITO"],
+                                               [data.get("departamento"), data.get("provincia"), data.get("distrito")]):
+                            col.markdown(f'<div class="info-container"><div class="info-label">{lab}</div><div class="info-value">{val or "---"}</div></div>', unsafe_allow_html=True)
+
+                        # Fila 4: Dirección Completa
+                        st.markdown(f'<div class="info-container"><div class="info-label">DIRECCIÓN</div><div class="info-value">{data.get("direccion") or "---"}</div></div>', unsafe_allow_html=True)
+
+                    # --- SECCIÓN PADRES ---
+                    st.subheader("👪 Datos de los Padres")
+                    p1, p2 = st.columns(2)
+                    p1.markdown(f'<div class="info-container"><div class="info-label">PADRE</div><div class="info-value">{data.get("nombre_padre") or "---"}</div></div>', unsafe_allow_html=True)
+                    p2.markdown(f'<div class="info-container"><div class="info-label">MADRE</div><div class="info-value">{data.get("nombre_madre") or "---"}</div></div>', unsafe_allow_html=True)
 
                 else:
-                    st.error(f"Error: {res.get('message', 'No se encontró el DNI')}")
+                    st.error(f"❌ {res.get('message', 'DNI no encontrado')}")
             except Exception as e:
-                st.error(f"Fallo en la consulta: {e}")
+                st.error(f"Error técnico: {e}")
     else:
-        st.warning("DNI debe tener 8 números.")
+        st.warning("Ingrese 8 dígitos")
 
-if st.button("🔙 Volver"):
+if st.button("🔙 VOLVER AL PANEL"):
     st.switch_page("app.py")
