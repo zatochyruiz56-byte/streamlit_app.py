@@ -1,86 +1,73 @@
-mport streamlit as st
+import streamlit as st
 import requests
 
-# --- CONFIGURACIÓN ---
-st.set_page_config(page_title="DNI Básico DEBUGGER", layout="wide")
+# 1. Configuración básica
+st.set_page_config(page_title="DNI Básico Fixed", layout="wide")
 
-st.markdown("""
-<style>
-    .stApp { background-color: #0d1117; }
-    .main-card { background: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 20px; }
-    .info-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-    .info-table td { padding: 12px; border-bottom: 1px solid #21262d; color: #c9d1d9; font-family: sans-serif; }
-    .info-table td:first-child { color: #8b949e; font-weight: bold; width: 35%; font-size: 0.7rem; text-transform: uppercase; }
-    .json-debug { background: #000; padding: 10px; border-radius: 5px; border-left: 3px solid #3b82f6; font-family: monospace; font-size: 0.8rem; }
-</style>
-""", unsafe_allow_html=True)
+# 2. Función de búsqueda segura
+def obtener_dato(diccionario, llaves):
+    for llave in llaves:
+        valor = diccionario.get(llave)
+        if valor and str(valor).strip().lower() not in ["none", "null", ""]:
+            return str(valor).upper()
+    return "N/D"
 
-def find_data(obj, keys, default="N/D"):
-    if not isinstance(obj, dict): return default
-    for k in keys:
-        if k in obj and obj[k]:
-            val = str(obj[k]).strip()
-            if val.lower() not in ["none", "null", ""]: return val.upper()
-    return default
+# 3. Interfaz Lateral
+st.sidebar.title("🔍 Buscador")
+dni_input = st.sidebar.text_input("Ingrese DNI (8 dígitos)", max_chars=8)
 
-c_left, c_right = st.columns([1, 2.5])
+if st.sidebar.button("BUSCAR AHORA", type="primary", use_container_width=True):
+    URL = "https://seeker-v6.com/personas/apiBasico/dni"
+    HEADERS = {"Authorization": "Bearer sk_live_104655a1666c3ea084ecc19f6b859a5fbb843f0aaac534ad"}
+    try:
+        r = requests.post(URL, headers=HEADERS, data={"dni": dni_input})
+        st.session_state.busqueda = r.json()
+    except Exception as e:
+        st.error(f"Error de conexión: {e}")
 
-with c_left:
-    st.markdown('<div class="main-card">', unsafe_allow_html=True)
-    st.subheader("🔍 Buscador")
-    dni = st.text_input("DNI", max_chars=8)
+if st.sidebar.button("🏠 VOLVER AL INICIO"):
+    st.switch_page("app.py")
+
+# 4. Mostrar Resultados
+if "busqueda" in st.session_state:
+    res = st.session_state.busqueda
     
-    if st.button("CONSULTAR", type="primary", use_container_width=True):
-        URL = "https://seeker-v6.com/personas/apiBasico/dni"
-        HEADERS = {"Authorization": "Bearer sk_live_104655a1666c3ea084ecc19f6b859a5fbb843f0aaac534ad"}
-        DATA = {"dni": dni}
+    # --- MODO DEBUG (IMPORTANTE) ---
+    with st.expander("🛠️ VER RESPUESTA CRUDA DE LA API (Analiza los nombres aquí)"):
+        st.json(res)
+    
+    if res.get("status") == "success":
+        data = res.get("data", {})
         
-        try:
-            r = requests.post(URL, headers=HEADERS, data=DATA)
-            st.session_state.raw_json = r.json()
-        except Exception as e:
-            st.error(f"Error: {e}")
-    
-    if st.button("🏠 INICIO"): st.switch_page("app.py")
-    st.markdown('</div>', unsafe_allow_html=True)
-
-if 'raw_json' in st.session_state:
-    res = st.session_state.raw_json
-    
-    with c_right:
-        # --- EL "F12" DE STREAMLIT ---
-        with st.expander("🛠️ VER JSON CRUDO (Aquí ves los nombres reales de las variables)"):
-            st.json(res)
-            st.info("Revisa arriba si los nombres como 'nombres' o 'paterno' coinciden exactamente.")
-
-        if res.get("status") == "success":
-            data = res.get("data", {})
-            st.success("Información extraída correctamente")
+        col1, col2 = st.columns([2, 1])
+        
+        with col1:
+            st.subheader("📋 Datos Personales")
             
-            # Intento de mapeo automático
+            # Definimos los campos y las posibles llaves que envía la API
             campos = [
                 ("Nombres", ["nombres", "nombre", "names"]),
-                ("Apellido Paterno", ["paterno", "apellidoPaterno", "ap_paterno"]),
-                ("Apellido Materno", ["materno", "apellidoMaterno", "ap_materno"]),
-                ("DNI", ["dni", "numeroDocumento", "documento"]),
-                ("Cód. Verif", ["digitoVerificacion", "codVerifica"]),
-                ("Créditos", ["creditos_restantes"])
+                ("Ap. Paterno", ["paterno", "apellidoPaterno", "ap_paterno"]),
+                ("Ap. Materno", ["materno", "apellidoMaterno", "ap_materno"]),
+                ("DNI / Doc", ["dni", "numeroDocumento", "documento"]),
+                ("Cód. Verif", ["digitoVerificacion", "codVerifica"])
             ]
             
-            html = '<table class="info-table">'
-            for label, keys in campos:
-                # Buscamos en 'data' o en la raíz 'res'
-                val = find_data(data, keys)
-                if val == "N/D": val = find_data(res, keys)
-                html += f'<tr><td>{label}</td><td style="font-weight:bold;">{val}</td></tr>'
-            html += '</table>'
-            st.markdown(html, unsafe_allow_html=True)
+            for label, llaves in campos:
+                valor = obtener_dato(data, llaves)
+                st.write(f"**{label}:** {valor}")
             
-            # Foto
-            foto_base64 = find_data(data, ["foto", "foto_base64", "fotografia"], None)
-            if foto_base64:
-                if not foto_base64.startswith("data:"):
-                    foto_base64 = f"data:image/jpeg;base64,{foto_base64}"
-                st.image(foto_base64, width=200)
-        else:
-            st.error(f"Error de la API: {res.get('message', 'Sin mensaje')}")
+            creditos = obtener_dato(res, ["creditos_restantes", "creditos"])
+            st.metric("Créditos Restantes", creditos)
+
+        with col2:
+            st.subheader("📷 Foto")
+            foto = obtener_dato(data, ["foto", "foto_base64", "fotografia"])
+            if foto != "N/D":
+                if not foto.startswith("data:"):
+                    foto = f"data:image/jpeg;base64,{foto}"
+                st.image(foto, use_container_width=True)
+            else:
+                st.info("No se encontró fotografía")
+    else:
+        st.error(f"La API dice: {res.get('message', 'Error desconocido')}")
