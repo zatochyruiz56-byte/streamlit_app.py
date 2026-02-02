@@ -67,7 +67,7 @@ with c1:
     st.info("👤 **MÓDULO PERSONAS**")
     st.caption("DNI Premium, Básico, Nombres")
     if st.button("Ir a Personas"):
-        st.switch_page("pages/1_👤_Personas.py")
+        st.switch_page("pages/personas.py")
 
 with c2:
     st.info("📞 **MÓDULO TELÉFONOS**")
@@ -78,3 +78,4 @@ with c3:
     st.info("🚗 **MÓDULO VEHICULAR**")
     st.caption("Placas, Licencias, SOAT")
     st.button("Próximamente", disabled=True, key="veh")
+
