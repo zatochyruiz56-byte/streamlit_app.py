@@ -34,4 +34,5 @@ if st.button("Consultar Información"):
             except Exception as e:
                 st.error(f"Error de conexión: {e}")
     else:
+
         st.warning("Escribe un DNI válido de 8 dígitos.")
