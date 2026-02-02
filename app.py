@@ -1,8 +1,9 @@
 import streamlit as st
 
+# Configuración inicial
 st.set_page_config(page_title="DataAPI Dashboard", layout="wide", initial_sidebar_state="collapsed")
 
-# Estilo Dark Premium
+# Estilo visual de tarjetas (Dashboard)
 st.markdown("""
     <style>
     .stApp { background-color: #0e1117; }
@@ -10,55 +11,55 @@ st.markdown("""
         background-color: #161b22;
         border: 1px solid #30363d;
         border-radius: 15px;
-        padding: 25px;
+        padding: 20px;
         text-align: center;
-        margin-bottom: 15px;
+        margin-bottom: 10px;
     }
     </style>
     """, unsafe_allow_html=True)
 
+# Lógica de Login
 if 'autenticado' not in st.session_state:
     st.session_state['autenticado'] = False
 
-# Login
 if not st.session_state['autenticado']:
-    cols = st.columns([1, 1, 1])
-    with cols[1]:
+    c1, c2, c3 = st.columns([1, 1, 1])
+    with c2:
         st.title("🔐 Acceso")
-        u = st.text_input("Usuario")
-        p = st.text_input("Clave", type="password")
-        if st.button("INGRESAR"):
-            if u == "admin" and p == "666":
+        user = st.text_input("Usuario")
+        passw = st.text_input("Contraseña", type="password")
+        if st.button("INGRESAR SISTEMA"):
+            if user == "admin" and passw == "666":
                 st.session_state['autenticado'] = True
                 st.rerun()
             else:
                 st.error("Credenciales incorrectas")
     st.stop()
 
-# Dashboard
+# --- PANEL DE CONTROL ---
 st.title("🚀 Panel de Control")
 st.markdown("---")
 
-c1, c2, c3 = st.columns(3)
+col1, col2, col3 = st.columns(3)
 
-with c1:
+with col1:
     st.markdown('<div class="module-card">', unsafe_allow_html=True)
     st.subheader("👤 Personas")
-    # Este botón ahora funcionará con el archivo que tienes en GitHub
-    if st.button("ABRIR MÓDULO", key="btn_p"):
+    # Redirigimos al nombre de archivo que pusiste en GitHub
+    if st.button("ABRIR MÓDULO", key="btn_personas"):
         st.switch_page("pages/Personas.py")
     st.markdown('</div>', unsafe_allow_html=True)
 
-with c2:
+with col2:
     st.markdown('<div class="module-card">', unsafe_allow_html=True)
     st.subheader("📞 Teléfonos")
-    # La key="btn_t" evita el error de DuplicateElementId
-    st.button("PRÓXIMAMENTE", disabled=True, key="btn_t")
+    # La KEY "btn_tel" soluciona el error DuplicateElementId
+    st.button("PRÓXIMAMENTE", disabled=True, key="btn_tel")
     st.markdown('</div>', unsafe_allow_html=True)
 
-with c3:
+with col3:
     st.markdown('<div class="module-card">', unsafe_allow_html=True)
     st.subheader("🚗 Vehicular")
-    # La key="btn_v" evita el error de DuplicateElementId
-    st.button("PRÓXIMAMENTE", disabled=True, key="btn_v")
+    # La KEY "btn_veh" soluciona el error DuplicateElementId
+    st.button("PRÓXIMAMENTE", disabled=True, key="btn_veh")
     st.markdown('</div>', unsafe_allow_html=True)
