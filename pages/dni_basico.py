@@ -1,112 +1,128 @@
 import streamlit as st
 import requests
 
-# 1. Configuración de página con tema oscuro forzado vía CSS
-st.set_page_config(page_title="DNI Básico - Estilo Premium", layout="wide")
+# 1. Configuración de página con Layout Ancho
+st.set_page_config(page_title="Buscador DNI - Estilo Premium", layout="wide")
 
-# Estilos CSS para replicar la versión Premium
+# 2. Inyección de CSS para Diseño Premium (Fondo oscuro, Acentos verdes)
 st.markdown("""
 <style>
-    /* Fondo principal y textos */
+    /* Estilo General */
     .stApp { background-color: #0e1117; }
-    h1, h2, h3, p, span, label { color: white !important; }
+    h1, h2, h3, p, span, label, .stMarkdown { color: white !important; }
     
-    /* Estilo del título verde */
+    /* Títulos de Sección */
     .premium-title {
         color: #00a36c;
-        font-size: 28px;
+        font-size: 26px;
         font-weight: bold;
+        margin-bottom: 25px;
         display: flex;
         align-items: center;
-        gap: 10px;
-        margin-bottom: 20px;
+        gap: 12px;
     }
     
-    /* Contenedor de la tabla de datos */
-    .data-container {
+    /* Contenedor de Tabla de Datos */
+    .data-card {
         background-color: #161b22;
-        border-radius: 10px;
+        border-radius: 12px;
         border: 1px solid #30363d;
-        padding: 0px;
         overflow: hidden;
+        margin-top: 10px;
     }
     
-    /* Filas de la tabla */
+    /* Filas de la Tabla */
     .data-row {
         display: flex;
         border-bottom: 1px solid #30363d;
-        padding: 12px 15px;
+        padding: 14px 18px;
+        align-items: center;
     }
+    .data-row:last-child { border-bottom: none; }
+    
     .data-label {
-        width: 40%;
+        width: 45%;
         color: #8b949e;
-        font-size: 13px;
-        font-weight: bold;
+        font-size: 12px;
+        font-weight: 800;
         text-transform: uppercase;
+        letter-spacing: 0.5px;
     }
     .data-value {
-        width: 60%;
-        color: white;
-        font-weight: bold;
+        width: 55%;
+        color: #ffffff;
+        font-weight: 700;
         font-size: 15px;
     }
     
-    /* Contenedor de Foto */
-    .photo-label {
+    /* Contenedor de Fotografía */
+    .photo-header {
         text-align: center;
         color: #8b949e;
         font-size: 12px;
         font-weight: bold;
-        margin-bottom: 10px;
+        margin-bottom: 12px;
+        letter-spacing: 1px;
     }
-    .photo-container {
+    .photo-frame {
         border: 4px solid #30363d;
-        border-radius: 15px;
-        padding: 10px;
+        border-radius: 18px;
+        padding: 12px;
         background: #161b22;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.5);
     }
+    
+    /* Ocultar elementos innecesarios */
+    #MainMenu, footer, header {visibility: hidden;}
 </style>
-""", unsafe_allow_stdio=True, unsafe_allow_html=True)
+""", unsafe_allow_html=True)
 
-def obtener_dato(diccionario, llaves):
-    if not isinstance(diccionario, dict): return "N/D"
-    for llave in llaves:
-        valor = diccionario.get(llave)
-        if valor and str(valor).strip().lower() not in ["none", "null", ""]:
-            return str(valor).upper()
+# Función de ayuda para extraer datos de forma segura
+def val(d, keys):
+    if not isinstance(d, dict): return "N/D"
+    for k in keys:
+        v = d.get(k)
+        if v and str(v).strip().lower() not in ["none", "null", ""]:
+            return str(v).upper()
     return "N/D"
 
-# --- SIDEBAR ---
-st.sidebar.markdown("<h2 style='text-align:center;'>🔍 Buscador</h2>", unsafe_allow_html=True)
-dni_input = st.sidebar.text_input("DNI A CONSULTAR", max_chars=8)
+# --- BARRA LATERAL (SIDEBAR) ---
+with st.sidebar:
+    st.markdown("<h2 style='text-align:center;'>🔍 BUSCADOR</h2>", unsafe_allow_html=True)
+    dni_input = st.text_input("DNI A CONSULTAR", max_chars=8, placeholder="Ej: 45106211")
+    
+    if st.button("EJECUTAR CONSULTA", type="primary", use_container_width=True):
+        if len(dni_input) == 8:
+            URL = "https://seeker-v6.com/personas/apiBasico/dni"
+            HEADERS = {"Authorization": "Bearer sk_live_104655a1666c3ea084ecc19f6b859a5fbb843f0aaac534ad"}
+            try:
+                with st.spinner("Consultando..."):
+                    r = requests.post(URL, headers=HEADERS, data={"dni": dni_input}, timeout=10)
+                    st.session_state.result_basico = r.json()
+            except Exception as e:
+                st.error(f"Error de red: {e}")
+        else:
+            st.warning("El DNI debe tener 8 dígitos.")
 
-if st.sidebar.button("EJECUTAR CONSULTA", type="primary", use_container_width=True):
-    URL = "https://seeker-v6.com/personas/apiBasico/dni"
-    HEADERS = {"Authorization": "Bearer sk_live_104655a1666c3ea084ecc19f6b859a5fbb843f0aaac534ad"}
-    try:
-        r = requests.post(URL, headers=HEADERS, data={"dni": dni_input})
-        st.session_state.busqueda = r.json()
-    except Exception as e:
-        st.error(f"Error: {e}")
+    if st.button("🏠 MENÚ PRINCIPAL", use_container_width=True):
+        st.switch_page("app.py")
 
-if st.sidebar.button("🏠 MENÚ PRINCIPAL", use_container_width=True):
-    st.switch_page("app.py")
-
-# --- ÁREA PRINCIPAL ---
-if "busqueda" in st.session_state:
-    res = st.session_state.busqueda
+# --- ÁREA DE RESULTADOS ---
+if "result_basico" in st.session_state:
+    res = st.session_state.result_basico
     
     if res.get("status") == "success":
-        data_raw = res.get("data", [])
-        data = data_raw[0] if (isinstance(data_raw, list) and len(data_raw) > 0) else (data_raw if isinstance(data_raw, dict) else {})
+        # Extraer datos (maneja si es lista o dict)
+        raw_data = res.get("data", [])
+        info = raw_data[0] if (isinstance(raw_data, list) and len(raw_data) > 0) else (raw_data if isinstance(raw_data, dict) else {})
 
-        col1, col2 = st.columns([2, 1])
+        col_info, col_img = st.columns([1.8, 1])
         
-        with col1:
+        with col_info:
             st.markdown('<div class="premium-title">📋 Datos Obtenidos</div>', unsafe_allow_html=True)
             
-            # Construcción de la tabla estilo Premium
-            campos = [
+            # Definición de campos para la tabla
+            items = [
                 ("DNI / DOCUMENTO", ["dni", "numeroDocumento"]),
                 ("NOMBRES", ["nombres", "nombre"]),
                 ("APELLIDO PATERNO", ["ap_paterno", "paterno"]),
@@ -114,32 +130,39 @@ if "busqueda" in st.session_state:
                 ("CÓD. VERIF", ["digitoVerificacion", "codVerifica"]),
             ]
             
-            html_tabla = '<div class="data-container">'
-            for label, llaves in campos:
-                valor = obtener_dato(data, llaves)
-                html_tabla += f'''
+            # Generar tabla HTML
+            html = '<div class="data-card">'
+            for label, keys in items:
+                valor_final = val(info, keys)
+                html += f'''
                 <div class="data-row">
                     <div class="data-label">{label}</div>
-                    <div class="data-value">{valor}</div>
+                    <div class="data-value">{valor_final}</div>
                 </div>
                 '''
-            html_tabla += '</div>'
-            st.markdown(html_tabla, unsafe_allow_html=True)
+            html += '</div>'
+            st.markdown(html, unsafe_allow_html=True)
 
-        with col2:
-            st.markdown('<div class="photo-label">BIOMETRÍA RENIEC</div>', unsafe_allow_html=True)
-            foto = obtener_dato(data, ["foto", "foto_base64", "fotografia"])
+        with col_img:
+            st.markdown('<div class="photo-header">BIOMETRÍA RENIEC</div>', unsafe_allow_html=True)
+            foto_data = val(info, ["foto", "foto_base64", "fotografia"])
             
-            st.markdown('<div class="photo-container">', unsafe_allow_html=True)
-            if foto != "N/D":
-                if not foto.startswith("data:"):
-                    foto = f"data:image/jpeg;base64,{foto}"
-                st.image(foto, use_container_width=True)
+            st.markdown('<div class="photo-frame">', unsafe_allow_html=True)
+            if foto_data != "N/D":
+                # Asegurar formato base64 correcto
+                if not foto_data.startswith("data:"):
+                    foto_data = f"data:image/jpeg;base64,{foto_data}"
+                st.image(foto_data, use_container_width=True)
             else:
-                st.info("SIN FOTO")
+                st.info("No se encontró fotografía en la base de datos.")
             st.markdown('</div>', unsafe_allow_html=True)
     else:
-        st.error(f"Error: {res.get('message', 'Error desconocido')}")
+        st.error(f"Aviso: {res.get('message', 'No se encontraron registros para este DNI.')}")
 else:
-    # Pantalla inicial vacía con estilo
-    st.info("Ingrese un DNI en la barra lateral para comenzar.")
+    # Estado inicial amigable
+    st.markdown("""
+    <div style="text-align: center; margin-top: 100px; opacity: 0.5;">
+        <h2 style="color: #8b949e !important;">LISTO PARA BUSCAR</h2>
+        <p>Ingresa un número de documento en el panel izquierdo.</p>
+    </div>
+    """, unsafe_allow_html=True)
