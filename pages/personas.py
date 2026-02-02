@@ -1,13 +1,12 @@
 import streamlit as st
 import requests
 
-# 1. CONFIGURACIÓN
-st.set_page_config(page_title="DataAPI - Consulta Premium", layout="wide")
+# 1. CONFIGURACIÓN DE PÁGINA
+st.set_page_config(page_title="DataAPI - Multi Consulta", layout="wide")
 
-# 2. CSS AVANZADO (FIX DE FOTO Y TABLA)
+# 2. ESTILOS CSS REFORZADOS
 st.markdown("""
 <style>
-    /* Fondo general */
     .stApp { background-color: #0b0e14; color: #c9d1d9; }
     
     /* Panel de búsqueda */
@@ -16,62 +15,53 @@ st.markdown("""
         border: 1px solid #30363d;
         border-radius: 12px;
         padding: 20px;
-        border-top: 4px solid #6366f1;
+        border-left: 5px solid #3b82f6;
     }
     
-    /* Tabla de resultados */
+    /* Estilo para la Tabla */
     .pro-table {
         width: 100%;
         border-collapse: collapse;
         background: #161b22;
         border-radius: 8px;
         border: 1px solid #30363d;
-        overflow: hidden;
     }
     .pro-table td {
-        padding: 14px 20px;
+        padding: 12px 20px;
         border-bottom: 1px solid #21262d;
-        font-size: 0.95rem;
+        font-size: 0.9rem;
     }
     .pro-table td:first-child {
         color: #8b949e;
         font-weight: 600;
-        width: 40%;
+        width: 35%;
         text-transform: uppercase;
-        font-size: 0.75rem;
-        letter-spacing: 0.5px;
+        font-size: 0.7rem;
     }
     
-    /* ESTILO DIRECTO PARA LA FOTO (FIX) */
+    /* ESTILO FIX PARA FOTO ENCAJADA */
     [data-testid="stImage"] {
         border: 3px solid #30363d;
         border-radius: 16px;
         background: #161b22;
-        padding: 10px;
-        box-shadow: 0 15px 40px rgba(0,0,0,0.6);
-        margin-top: 10px;
-        transition: transform 0.3s ease;
+        padding: 8px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        display: block;
+        margin-left: auto;
+        margin-right: auto;
     }
-    [data-testid="stImage"]:hover {
-        border-color: #6366f1;
-        transform: scale(1.02);
-    }
-    
-    /* Titulo de resultados */
-    .result-header {
-        color: #6366f1;
-        font-size: 1.6rem;
-        font-weight: 900;
-        margin-bottom: 20px;
-        display: flex;
-        align-items: center;
-        gap: 10px;
+
+    .header-text {
+        color: #3b82f6;
+        font-size: 1.5rem;
+        font-weight: 800;
+        margin-bottom: 10px;
     }
 </style>
 """, unsafe_allow_html=True)
 
-# 3. FUNCIONES DE APOYO
-def get_safe(data, keys, default="No disponible"):
+# 3. FUNCIONES DE LIMPIEZA
+def clean_val(data, keys, default="No disponible"):
     if not isinstance(data, dict): return default
     for k in keys:
         v = data.get(k)
@@ -79,8 +69,7 @@ def get_safe(data, keys, default="No disponible"):
             return str(v).upper()
     return default
 
-def get_photo_url(data):
-    # Intentar corregir el Base64 si viene sin cabecera
+def get_photo(data):
     keys = ['foto', 'foto_base64', 'foto_b64', 'fotografia', 'fotoBiometrica']
     for k in keys:
         raw = data.get(k)
@@ -90,68 +79,73 @@ def get_photo_url(data):
             return raw
     return None
 
-# 4. ESTRUCTURA DE COLUMNAS
-c_search, c_main, c_photo = st.columns([1.1, 2.2, 1.2], gap="large")
+# 4. LAYOUT DE TRES COLUMNAS
+c1, c2, c3 = st.columns([1, 2, 1], gap="large")
 
-if 'res' not in st.session_state:
-    st.session_state.res = None
+if 'api_res' not in st.session_state:
+    st.session_state.api_res = None
 
-with c_search:
+with c1:
     st.markdown('<div class="search-panel">', unsafe_allow_html=True)
-    st.title("👤 Consulta")
-    st.caption("Premium Seeker V6")
+    st.subheader("👤 Panel de Búsqueda")
     
-    dni = st.text_input("DNI A CONSULTAR", max_chars=8, placeholder="60799566")
+    # NUEVO SELECTOR DE MODO
+    modo = st.selectbox("TIPO DE CONSULTA", ["PREMIUM", "GRATIS (BÁSICO)"])
+    dni_input = st.text_input("NUMERO DOCUMENTO*", max_chars=8, placeholder="45106211")
     
-    if st.button("EJECUTAR BÚSQUEDA", use_container_width=True, type="primary"):
-        with st.spinner("Cargando base de datos..."):
+    if st.button("BUSCAR AHORA", use_container_width=True, type="primary"):
+        TOKEN = "sk_live_104655a1666c3ea084ecc19f6b859a5fbb843f0aaac534ad"
+        
+        # LOGICA DE ENDPOINT SEGÚN SELECCIÓN
+        if "PREMIUM" in modo:
+            URL = "https://seeker-v6.com/personas/apiPremium/dni"
+        else:
+            URL = "https://seeker-v6.com/personas/apiBasico/dni"
+            
+        with st.spinner("Consultando..."):
             try:
-                TOKEN = "sk_live_104655a1666c3ea084ecc19f6b859a5fbb843f0aaac534ad"
-                url = "https://seeker-v6.com/personas/apiPremium/dni"
-                r = requests.post(url, headers={"Authorization": f"Bearer {TOKEN}"}, data={"dni": dni})
-                st.session_state.res = r.json()
+                r = requests.post(URL, headers={"Authorization": f"Bearer {TOKEN}"}, data={"dni": dni_input})
+                st.session_state.api_res = r.json()
             except:
-                st.error("Fallo en la conexión")
-    
-    if st.button("🔙 SALIR", use_container_width=True):
+                st.error("Error en la conexión con la API")
+                
+    if st.button("🔙 VOLVER AL MENÚ", use_container_width=True):
         st.switch_page("app.py")
     st.markdown('</div>', unsafe_allow_html=True)
 
-# 5. MOSTRAR DATOS
-if st.session_state.res:
-    res = st.session_state.res
+# 5. RESULTADOS
+if st.session_state.api_res:
+    res = st.session_state.api_res
+    # Ambas APIs suelen devolver los datos dentro de un campo 'data'
     data = res.get("data", res) if isinstance(res, dict) else res
     
-    with c_main:
-        st.markdown('<div class="result-header">💎 Resultados Premium</div>', unsafe_allow_html=True)
-        
+    with c2:
+        st.markdown('<div class="header-text">💎 Resultados Pro</div>', unsafe_allow_html=True)
         campos = [
-            ("DNI / DOC", ["dni", "documento"]),
-            ("NOMBRE COMPLETO", ["nombres", "nombre"]),
-            ("AP. PATERNO", ["ap_paterno", "paterno"]),
-            ("AP. MATERNO", ["ap_materno", "materno"]),
-            ("NOMBRE PADRE", ["padre", "nombre_padre", "padre_nombre"]),
-            ("NOMBRE MADRE", ["madre", "nombre_madre", "madre_nombre"]),
-            ("FEC. NACIMIENTO", ["fec_nacimiento", "fecha_nacimiento"]),
+            ("DNI", ["dni", "num_doc", "documento"]),
+            ("NOMBRES", ["nombres"]),
+            ("APELLIDO PATERNO", ["paterno", "ap_paterno"]),
+            ("APELLIDO MATERNO", ["materno", "ap_materno"]),
+            ("PADRE", ["padre", "nombre_padre"]),
+            ("MADRE", ["madre", "nombre_madre"]),
+            ("FECHA NACIMIENTO", ["fec_nacimiento", "fecha_nacimiento"]),
             ("EDAD ACTUAL", ["edad"]),
-            ("SEXO / GÉNERO", ["género", "sexo"]),
             ("ESTADO CIVIL", ["estado_civil"]),
-            ("UBICACIÓN", ["dirección", "distrito"])
+            ("DIRECCIÓN", ["dirección", "distrito"])
         ]
         
-        table_body = ""
+        html_table = '<table class="pro-table">'
         for label, keys in campos:
-            val = get_safe(data, keys)
-            color = "#ffffff" if val != "No disponible" else "#484f58"
-            table_body += f'<tr><td>{label}</td><td style="color:{color}; font-weight:700;">{val}</td></tr>'
-            
-        st.markdown(f'<table class="pro-table">{table_body}</table>', unsafe_allow_html=True)
+            v = clean_val(data, keys)
+            color = "white" if v != "No disponible" else "#484f58"
+            html_table += f'<tr><td>{label}</td><td style="color:{color}; font-weight:bold;">{v}</td></tr>'
+        html_table += '</table>'
+        st.markdown(html_table, unsafe_allow_html=True)
 
-    with c_photo:
-        st.markdown('<div style="text-align:center; margin-bottom:10px; color:#8b949e; font-size:0.7rem; font-weight:bold; letter-spacing:1px;">IDENTIDAD BIOMÉTRICA</div>', unsafe_allow_html=True)
-        photo = get_photo_url(data)
-        if photo:
-            st.image(photo, use_container_width=True)
+    with c3:
+        st.markdown('<div style="text-align:center; color:#8b949e; font-size:0.7rem; font-weight:bold; margin-bottom:10px;">IDENTIDAD BIOMÉTRICA</div>', unsafe_allow_html=True)
+        foto_final = get_photo(data)
+        if foto_final:
+            st.image(foto_final, use_container_width=True)
         else:
-            st.info("No se encontró fotografía para este documento.")
-            st.markdown('<div style="height:300px; border:1px dashed #30363d; border-radius:15px; display:flex; align-items:center; justify-content:center; color:#484f58;">SIN FOTO</div>', unsafe_allow_html=True)
+            st.warning("Sin foto disponible")
