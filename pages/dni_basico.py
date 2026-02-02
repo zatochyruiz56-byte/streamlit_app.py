@@ -2,10 +2,12 @@ import streamlit as st
 import requests
 
 # 1. Configuración básica
-st.set_page_config(page_title="DNI Básico Fixed", layout="wide")
+st.set_page_config(page_title="DNI Básico V4 - Lista Fix", layout="wide")
 
-# 2. Función de búsqueda segura
+# 2. Función de búsqueda segura (Mejorada para Diccionarios)
 def obtener_dato(diccionario, llaves):
+    if not isinstance(diccionario, dict):
+        return "N/D"
     for llave in llaves:
         valor = diccionario.get(llave)
         if valor and str(valor).strip().lower() not in ["none", "null", ""]:
@@ -14,7 +16,7 @@ def obtener_dato(diccionario, llaves):
 
 # 3. Interfaz Lateral
 st.sidebar.title("🔍 Buscador")
-dni_input = st.sidebar.text_input("Ingrese DNI (8 dígitos)", max_chars=8)
+dni_input = st.sidebar.text_input("Ingrese DNI", max_chars=8)
 
 if st.sidebar.button("BUSCAR AHORA", type="primary", use_container_width=True):
     URL = "https://seeker-v6.com/personas/apiBasico/dni"
@@ -32,24 +34,32 @@ if st.sidebar.button("🏠 VOLVER AL INICIO"):
 if "busqueda" in st.session_state:
     res = st.session_state.busqueda
     
-    # --- MODO DEBUG (IMPORTANTE) ---
-    with st.expander("🛠️ VER RESPUESTA CRUDA DE LA API (Analiza los nombres aquí)"):
+    with st.expander("🛠️ DEBUG: RESPUESTA API"):
         st.json(res)
     
     if res.get("status") == "success":
-        data = res.get("data", {})
+        data_raw = res.get("data", [])
         
+        # --- EL GRAN FIX PARA LA LISTA ---
+        # Si data_raw es una lista [ {...} ], sacamos el primer elemento
+        if isinstance(data_raw, list) and len(data_raw) > 0:
+            data = data_raw[0]
+        elif isinstance(data_raw, dict):
+            data = data_raw
+        else:
+            data = {}
+
         col1, col2 = st.columns([2, 1])
         
         with col1:
-            st.subheader("📋 Datos Personales")
+            st.subheader("📋 Datos Encontrados")
             
-            # Definimos los campos y las posibles llaves que envía la API
+            # Ajustado a los nombres de tu captura: ap_paterno, ap_materno
             campos = [
-                ("Nombres", ["nombres", "nombre", "names"]),
-                ("Ap. Paterno", ["paterno", "apellidoPaterno", "ap_paterno"]),
-                ("Ap. Materno", ["materno", "apellidoMaterno", "ap_materno"]),
-                ("DNI / Doc", ["dni", "numeroDocumento", "documento"]),
+                ("Nombres", ["nombres", "nombre"]),
+                ("Ap. Paterno", ["ap_paterno", "paterno", "apellidoPaterno"]),
+                ("Ap. Materno", ["ap_materno", "materno", "apellidoMaterno"]),
+                ("DNI / Doc", ["dni", "documento"]),
                 ("Cód. Verif", ["digitoVerificacion", "codVerifica"])
             ]
             
@@ -57,6 +67,7 @@ if "busqueda" in st.session_state:
                 valor = obtener_dato(data, llaves)
                 st.write(f"**{label}:** {valor}")
             
+            # Créditos suelen estar en la raíz 'res'
             creditos = obtener_dato(res, ["creditos_restantes", "creditos"])
             st.metric("Créditos Restantes", creditos)
 
