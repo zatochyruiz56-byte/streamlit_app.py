@@ -1,13 +1,11 @@
 import streamlit as st
-import os
 
-# Configuración de página
-st.set_page_config(page_title="DataAPI Dashboard", layout="wide")
+st.set_page_config(page_title="DataAPI", layout="wide")
 
-# Lógica de Login básica
 if 'autenticado' not in st.session_state:
     st.session_state['autenticado'] = False
 
+# --- LOGIN ---
 if not st.session_state['autenticado']:
     _, col, _ = st.columns([1, 1, 1])
     with col:
@@ -19,37 +17,30 @@ if not st.session_state['autenticado']:
                 st.session_state['autenticado'] = True
                 st.rerun()
             else:
-                st.error("Credenciales incorrectas")
+                st.error("Error")
     st.stop()
 
-# --- PANEL DE CONTROL ---
+# --- DASHBOARD ---
 st.title("🚀 Panel de Control")
-st.markdown("---")
 
 col1, col2, col3 = st.columns(3)
 
 with col1:
-    st.subheader("👤 Módulo Personas")
-    if st.button("ABRIR MÓDULO", key="btn_personas"):
-        # Intentamos varias rutas por si Streamlit está confundido
-        rutas_posibles = ["pages/Personas.py", "Personas.py", "pages/personas.py"]
-        success = False
-        for ruta in rutas_posibles:
+    st.subheader("👤 Personas")
+    if st.button("ABRIR MÓDULO", key="btn_p"):
+        # Intentamos las 3 formas posibles en que Streamlit lee archivos
+        try:
+            st.switch_page("pages/Personas.py")
+        except:
             try:
-                st.switch_page(ruta)
-                success = True
-                break
+                st.switch_page("Personas.py")
             except:
-                continue
-        
-        if not success:
-            st.error("⚠️ Error crítico: Streamlit no detecta el archivo en la carpeta 'pages'.")
-            st.info("Sugerencia: Haz clic en 'Manage App' -> 'Reboot App' en el menú de Streamlit.")
+                st.error("Error de ruta. Por favor, haz REBOOT en Manage App.")
 
 with col2:
     st.subheader("📞 Teléfonos")
-    st.button("PRÓXIMAMENTE", disabled=True, key="btn_tel")
+    st.button("PRÓXIMAMENTE", key="btn_t", disabled=True)
 
 with col3:
     st.subheader("🚗 Vehicular")
-    st.button("PRÓXIMAMENTE", disabled=True, key="btn_veh")
+    st.button("PRÓXIMAMENTE", key="btn_v", disabled=True)
