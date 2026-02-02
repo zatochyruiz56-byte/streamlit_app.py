@@ -1,6 +1,5 @@
 import streamlit as st
 
-# Configuración de página
 st.set_page_config(page_title="DataAPI Dashboard", layout="wide", initial_sidebar_state="collapsed")
 
 # Estilo Dark Premium
@@ -21,7 +20,7 @@ st.markdown("""
 if 'autenticado' not in st.session_state:
     st.session_state['autenticado'] = False
 
-# Sistema de Login
+# Login
 if not st.session_state['autenticado']:
     cols = st.columns([1, 1, 1])
     with cols[1]:
@@ -36,7 +35,7 @@ if not st.session_state['autenticado']:
                 st.error("Credenciales incorrectas")
     st.stop()
 
-# --- DASHBOARD ---
+# Dashboard
 st.title("🚀 Panel de Control")
 st.markdown("---")
 
@@ -45,21 +44,21 @@ c1, c2, c3 = st.columns(3)
 with c1:
     st.markdown('<div class="module-card">', unsafe_allow_html=True)
     st.subheader("👤 Personas")
+    # Este botón ahora funcionará con el archivo que tienes en GitHub
     if st.button("ABRIR MÓDULO", key="btn_p"):
-        # USAMOS EL NOMBRE SIMPLE SIN EMOJIS
         st.switch_page("pages/Personas.py")
     st.markdown('</div>', unsafe_allow_html=True)
 
 with c2:
     st.markdown('<div class="module-card">', unsafe_allow_html=True)
     st.subheader("📞 Teléfonos")
-    # Añadimos key="t1" para evitar el error DuplicateElementId
-    st.button("PRÓXIMAMENTE", disabled=True, key="t1")
+    # La key="btn_t" evita el error de DuplicateElementId
+    st.button("PRÓXIMAMENTE", disabled=True, key="btn_t")
     st.markdown('</div>', unsafe_allow_html=True)
 
 with c3:
     st.markdown('<div class="module-card">', unsafe_allow_html=True)
     st.subheader("🚗 Vehicular")
-    # Añadimos key="v1" para evitar el error DuplicateElementId
-    st.button("PRÓXIMAMENTE", disabled=True, key="v1")
+    # La key="btn_v" evita el error de DuplicateElementId
+    st.button("PRÓXIMAMENTE", disabled=True, key="btn_v")
     st.markdown('</div>', unsafe_allow_html=True)
