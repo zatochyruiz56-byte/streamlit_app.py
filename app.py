@@ -1,81 +1,80 @@
 import streamlit as st
 
-# Configuración de página con tema oscuro
+# Configuración de la página (Layout amplio y tema oscuro)
 st.set_page_config(page_title="DataAPI Dashboard", layout="wide", initial_sidebar_state="collapsed")
 
-# CSS personalizado para imitar el diseño de tu imagen
+# Estilo CSS para el diseño de tarjetas (Estilo Imagen 31)
 st.markdown("""
     <style>
-    .main {
-        background-color: #0e1117;
+    .stApp { background-color: #0e1117; }
+    .module-card {
+        background-color: #161b22;
+        border: 1px solid #30363d;
+        border-radius: 15px;
+        padding: 25px;
+        text-align: center;
+        transition: 0.3s;
+        margin-bottom: 20px;
     }
+    .module-card:hover { border-color: #58a6ff; }
     .stButton>button {
         width: 100%;
         border-radius: 5px;
-        height: 3em;
-        background-color: #262730;
+        background-color: #21262d;
         color: white;
-        border: 1px solid #4a4a4a;
+        border: 1px solid #30363d;
     }
     .stButton>button:hover {
-        border-color: #ff4b4b;
-        color: #ff4b4b;
-    }
-    .login-box {
-        padding: 2rem;
-        border-radius: 10px;
-        background-color: #161b22;
-        border: 1px solid #30363d;
-        text-align: center;
+        border-color: #58a6ff;
+        color: #58a6ff;
     }
     </style>
     """, unsafe_allow_html=True)
 
+# Lógica de Autenticación
 if 'autenticado' not in st.session_state:
     st.session_state['autenticado'] = False
 
-def login():
-    cols = st.columns([1, 2, 1])
+if not st.session_state['autenticado']:
+    cols = st.columns([1, 1, 1])
     with cols[1]:
-        st.markdown('<div class="login-box">', unsafe_allow_html=True)
-        st.image("https://cdn-icons-png.flaticon.com/512/7081/7081162.png", width=80)
-        st.title("DataAPI Login")
-        
+        st.title("🔐 DataAPI Login")
         user = st.text_input("Usuario")
         pw = st.text_input("Contraseña", type="password")
-        
         if st.button("ACCEDER AL SISTEMA"):
+            # Cambia estas credenciales a tu gusto
             if user == "admin" and pw == "666":
                 st.session_state['autenticado'] = True
                 st.rerun()
             else:
-                st.error("Credenciales no válidas")
-        st.markdown('</div>', unsafe_allow_html=True)
-
-if not st.session_state['autenticado']:
-    login()
+                st.error("Usuario o clave incorrectos")
     st.stop()
 
-# --- DISEÑO DEL PANEL CENTRAL (POST-LOGIN) ---
-st.title("🚀 Panel de Control")
-st.markdown("### Seleccione un módulo para iniciar la consulta")
+# --- PANEL PRINCIPAL (POST-LOGIN) ---
+st.title("🚀 Bienvenido al Panel de Consultas")
+st.markdown("---")
 
-# Simulamos las tarjetas de tu imagen
-c1, c2, c3 = st.columns(3)
+col1, col2, col3 = st.columns(3)
 
-with c1:
-    st.info("👤 **MÓDULO PERSONAS**")
-    st.caption("DNI Premium, Básico, Nombres")
-    if st.button("Ir a Personas"):
-        st.switch_page("pages/personas.py")
+with col1:
+    st.markdown('<div class="module-card">', unsafe_allow_html=True)
+    st.subheader("👤 Módulo Personas")
+    st.caption("DNI Premium, Básico, Nombres, Padres")
+    if st.button("INGRESAR", key="btn_personas"):
+        # RUTA REPARADA: Apunta a la carpeta 'pages' y al archivo 'Personas.py'
+        st.switch_page("pages/Personas.py")
+    st.markdown('</div>', unsafe_allow_html=True)
 
-with c2:
-    st.info("📞 **MÓDULO TELÉFONOS**")
-    st.caption("Búsqueda por celular y operador")
-    st.button("Próximamente", disabled=True, key="tel")
+with col2:
+    st.markdown('<div class="module-card">', unsafe_allow_html=True)
+    st.subheader("📞 Módulo Telefonía")
+    st.caption("Celulares, Operadores, Titulares")
+    st.button("PRÓXIMAMENTE", disabled=True, key="btn_tel")
+    st.markdown('</div>', unsafe_allow_html=True)
 
-with c3:
-    st.info("🚗 **MÓDULO VEHICULAR**")
+with col3:
+    st.markdown('<div class="module-card">', unsafe_allow_html=True)
+    st.subheader("🚗 Módulo Vehicular")
     st.caption("Placas, Licencias, SOAT")
-    st.button("Próximamente", disabled=True, key="veh")
-
+    st.button("PRÓXIMAMENTE", disabled=True, key="btn_veh")
+    st.markdown('</div>', unsafe_allow_html=True)
