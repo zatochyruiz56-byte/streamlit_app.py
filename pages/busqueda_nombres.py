@@ -1,133 +1,126 @@
 import streamlit as st
 import requests
 
-# 1. Configuración de página
-st.set_page_config(page_title="Búsqueda Premium - Resultados Full", layout="wide")
+# 1. Configuración de pantalla completa
+st.set_page_config(page_title="Búsqueda Premium - Knowlers Style", layout="wide")
 
-# 2. Estilos CSS Premium (Diseño de Tabla y Cajones)
+# 2. CSS para replicar la tabla azul original
 st.markdown("""
 <style>
-    .stApp { background-color: #0e1117; }
-    .premium-header { 
-        background: linear-gradient(90deg, #161b22 0%, #0d1117 100%);
-        padding: 20px; border-radius: 12px; border: 1px solid #30363d; margin-bottom: 25px;
-        display: flex; justify-content: space-between; align-items: center;
-    }
-    .count-badge { background: #238636; color: white; padding: 4px 12px; border-radius: 20px; font-weight: bold; font-size: 14px; }
+    .stApp { background-color: #0b0e14; }
     
-    /* Contenedor de Persona */
-    .person-card { 
-        background-color: #161b22; border: 1px solid #30363d; border-radius: 12px; 
-        margin-bottom: 20px; padding: 0; overflow: hidden; 
-    }
-    .card-header { background: #21262d; padding: 10px 20px; border-bottom: 1px solid #30363d; color: #58a6ff; font-weight: bold; font-size: 13px; }
+    /* Contenedor de Tabla */
+    .table-container { width: 100%; overflow-x: auto; margin-top: 20px; border-radius: 4px; border: 1px solid #1e293b; }
     
-    .data-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background-color: #30363d; }
-    .data-item { background-color: #161b22; padding: 12px 20px; }
-    .data-label { color: #8b949e; font-size: 10px; font-weight: 800; text-transform: uppercase; margin-bottom: 4px; }
-    .data-value { color: #ffffff; font-weight: 700; font-size: 13px; }
+    table { width: 100%; border-collapse: collapse; font-family: 'Inter', sans-serif; font-size: 12px; }
+    
+    /* Cabecera Azul Original */
+    th { 
+        background-color: #0076ce; color: white; text-align: left; 
+        padding: 12px 10px; text-transform: uppercase; font-weight: 700;
+        border-right: 1px solid rgba(255,255,255,0.1);
+    }
+    
+    /* Filas */
+    td { padding: 10px; border-bottom: 1px solid #1e293b; color: #cbd5e1; }
+    tr:nth-child(even) { background-color: #161b22; }
+    tr:hover { background-color: #1c2533; }
+
+    /* Tags */
+    .badge-dni { color: #58a6ff; font-weight: bold; }
+    .badge-name { color: #ffffff; font-weight: 500; }
     
     /* Paginación */
-    .nav-container { display: flex; justify-content: center; align-items: center; gap: 20px; margin-top: 30px; padding: 20px; }
+    .page-info { text-align: center; color: #94a3b8; font-weight: bold; margin: 20px 0; }
     
     #MainMenu, footer, header {visibility: hidden;}
-    .stButton>button { border-radius: 8px; font-weight: bold; }
 </style>
 """, unsafe_allow_html=True)
 
-# Helper para limpiar datos
-def get_v(d, k, label="N/D"):
-    val = d.get(k, "")
-    if val is None or str(val).strip() == "" or str(val).lower() == "none":
-        return label
-    return str(val).upper()
+def val(d, k):
+    v = d.get(k, "")
+    return str(v).upper() if v and str(v).strip() != "" else "-"
 
-# --- SIDEBAR FILTROS ---
+# --- PANEL LATERAL ---
 with st.sidebar:
-    st.markdown("<h2 style='text-align:center;'>🔍 FILTROS</h2>", unsafe_allow_html=True)
-    nombres = st.text_input("NOMBRES")
-    paterno = st.text_input("AP. PATERNO")
-    materno = st.text_input("AP. MATERNO")
+    st.markdown("<h2 style='text-align:center;'>🔍 CONSULTA PREMIUM</h2>", unsafe_allow_html=True)
+    n = st.text_input("NOMBRES", placeholder="Ej: Alexander")
+    p = st.text_input("AP. PATERNO", placeholder="Ej: Ruiz")
+    m = st.text_input("AP. MATERNO")
     
-    if st.button("EJECUTAR CONSULTA", type="primary", use_container_width=True):
-        if nombres or paterno:
-            URL = "https://seeker-v6.com/personas/apiPremium/nombres"
-            HEADERS = {"Authorization": "Bearer sk_live_104655a1666c3ea084ecc19f6b859a5fbb843f0aaac534ad"}
-            DATA = {"name": nombres, "appPaterno": paterno, "appMaterno": materno, "edadMin": "0", "edadMax": "100"}
-            try:
-                r = requests.post(URL, headers=HEADERS, data=DATA)
-                res = r.json()
-                if res.get("status") == "success":
-                    st.session_state.all_results = res.get("data", [])
-                    st.session_state.current_page = 0 # Reiniciar a página 1
-                else: st.error("Error en API")
-            except: st.error("Error de conexión")
+    st.markdown("---")
+    col_e1, col_e2 = st.columns(2)
+    with col_e1: e_min = st.text_input("EDAD MÍN", value="0")
+    with col_e2: e_max = st.text_input("EDAD MÁX", value="100")
+    
+    if st.button("BUSCAR AHORA", type="primary", use_container_width=True):
+        URL = "https://seeker-v6.com/personas/apiPremium/nombres"
+        HEADERS = {"Authorization": "Bearer sk_live_104655a1666c3ea084ecc19f6b859a5fbb843f0aaac534ad"}
+        DATA = {"name": n, "appPaterno": p, "appMaterno": m, "edadMin": e_min, "edadMax": e_max}
+        try:
+            r = requests.post(URL, headers=HEADERS, data=DATA)
+            res = r.json()
+            if res.get("status") == "success":
+                st.session_state.data_full = res.get("data", [])
+                st.session_state.page = 0
+            else: st.error("Sin resultados")
+        except: st.error("Error en API")
 
-# --- LÓGICA DE PAGINACIÓN ---
-if "all_results" in st.session_state:
-    data = st.session_state.all_results
+# --- ÁREA DE RESULTADOS ---
+if "data_full" in st.session_state:
+    data = st.session_state.data_full
     total = len(data)
     per_page = 20
     
-    if "current_page" not in st.session_state:
-        st.session_state.current_page = 0
-        
-    start_idx = st.session_state.current_page * per_page
-    end_idx = start_idx + per_page
-    page_data = data[start_idx:end_idx]
+    if "page" not in st.session_state: st.session_state.page = 0
+    
     total_pages = (total // per_page) + (1 if total % per_page > 0 else 0)
+    start = st.session_state.page * per_page
+    end = start + per_page
+    current_data = data[start:end]
 
-    # Header de Resultados
-    st.markdown(f"""
-    <div class="premium-header">
-        <div style="color:white; font-size:20px; font-weight:bold;">👥 Resultados de Búsqueda</div>
-        <div class="count-badge">TOTAL: {total} PERSONAS</div>
-    </div>
-    """, unsafe_allow_html=True)
+    st.markdown(f"### 📊 Resultados Pro ({total} registros)")
 
-    # Renderizar cada persona
-    for i, p in enumerate(page_data):
-        # Mapeo de todos los campos que vimos en tu JSON
-        card_html = f"""
-        <div class="person-card">
-            <div class="card-header">REGISTRO #{start_idx + i + 1} - DOCUMENTO: {get_v(p, 'dni')}</div>
-            <div class="data-grid">
-                <div class="data-item"><div class="data-label">Nombres</div><div class="data-value">{get_v(p, 'nombres')}</div></div>
-                <div class="data-item"><div class="data-label">Apellido Paterno</div><div class="data-value">{get_v(p, 'ap_paterno')}</div></div>
-                <div class="data-item"><div class="data-label">Apellido Materno</div><div class="data-value">{get_v(p, 'ap_materno')}</div></div>
-                
-                <div class="data-item"><div class="data-label">Edad</div><div class="data-value">{get_v(p, 'edad')} AÑOS</div></div>
-                <div class="data-item"><div class="data-label">Fecha Nacimiento</div><div class="data-value">{get_v(p, 'fec_nacimiento')}</div></div>
-                <div class="data-item"><div class="data-label">Estado Civil</div><div class="data-value">{get_v(p, 'estado_civil')}</div></div>
-                
-                <div class="data-item"><div class="data-label">Padre</div><div class="data-value">{get_v(p, 'padre')}</div></div>
-                <div class="data-item"><div class="data-label">Madre</div><div class="data-value">{get_v(p, 'madre')}</div></div>
-                <div class="data-item"><div class="data-label">Género</div><div class="data-value">{'MASCULINO' if get_v(p, 'género') == '1' else 'FEMENINO'}</div></div>
-                
-                <div class="data-item" style="grid-column: span 3;"><div class="data-label">Origen</div><div class="data-value">{get_v(p, 'origen')}</div></div>
-                <div class="data-item" style="grid-column: span 3;"><div class="data-label">Dirección Actual</div><div class="data-value">{get_v(p, 'dirección')}</div></div>
-            </div>
-        </div>
+    # Construcción manual de la tabla para evitar errores de renderizado
+    table_html = """<div class="table-container"><table><thead><tr>
+        <th>#</th><th>DNI</th><th>NOMBRE</th><th>AP PATERNO</th><th>AP MATERNO</th>
+        <th>EDAD</th><th>FECHA NACI</th><th>PADRE</th><th>MADRE</th><th>ORIGEN</th><th>ESTADO</th>
+    </tr></thead><tbody>"""
+
+    for i, row in enumerate(current_data):
+        idx = start + i + 1
+        table_html += f"""
+        <tr>
+            <td>{idx}</td>
+            <td class="badge-dni">{val(row, 'dni')}</td>
+            <td class="badge-name">{val(row, 'nombres')}</td>
+            <td>{val(row, 'ap_paterno')}</td>
+            <td>{val(row, 'ap_materno')}</td>
+            <td>{val(row, 'edad')}</td>
+            <td>{val(row, 'fec_nacimiento')}</td>
+            <td>{val(row, 'padre')}</td>
+            <td>{val(row, 'madre')}</td>
+            <td>{val(row, 'origen')}</td>
+            <td>{val(row, 'estado_civil')}</td>
+        </tr>
         """
-        st.markdown(card_html, unsafe_allow_html=True)
+    
+    table_html += "</tbody></table></div>"
+    st.markdown(table_html, unsafe_allow_html=True)
 
-    # BOTONES DE NAVEGACIÓN
-    st.markdown("---")
-    col1, col2, col3 = st.columns([1, 2, 1])
+    # NAVEGACIÓN
+    st.markdown(f'<div class="page-info">Mostrando {start+1}-{min(end, total)} de {total}</div>', unsafe_allow_html=True)
     
-    with col1:
-        if st.session_state.current_page > 0:
+    c1, c2, c3, c4, c5 = st.columns([1,1,2,1,1])
+    with c2:
+        if st.session_state.page > 0:
             if st.button("⬅️ ANTERIOR", use_container_width=True):
-                st.session_state.current_page -= 1
+                st.session_state.page -= 1
                 st.rerun()
-    
-    with col2:
-        st.markdown(f"<div style='text-align:center; color:#8b949e; font-weight:bold; padding-top:10px;'>PÁGINA {st.session_state.current_page + 1} DE {total_pages}</div>", unsafe_allow_html=True)
-    
-    with col3:
-        if st.session_state.current_page < total_pages - 1:
+    with c4:
+        if st.session_state.page < total_pages - 1:
             if st.button("SIGUIENTE ➡️", use_container_width=True):
-                st.session_state.current_page += 1
+                st.session_state.page += 1
                 st.rerun()
 else:
-    st.info("Ingresa los datos en el panel izquierdo para comenzar la búsqueda premium.")
+    st.info("👋 Realiza una búsqueda para ver los datos en formato tabla.")
