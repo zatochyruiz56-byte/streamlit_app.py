@@ -25,7 +25,7 @@ def run():
                 width: 1000px; 
                 height: 1200px; 
                 position: absolute; 
-                top: -550px; /* Oculta el encabezado oficial */
+                top: -560px; /* Oculta el encabezado oficial */
                 left: 60%; 
                 margin-left: -400px; /* Centra el contenido horizontalmente */
                 border: none;
