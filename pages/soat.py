@@ -1,17 +1,21 @@
 import streamlit as st
 import requests
-import pandas as pd
 
-def consultar_interseguro(placa):
-    # La URL interna que usa Interseguro para las consultas de SOAT
+def consultar_interseguro_detallado(placa):
+    # Endpoint real de la API de Interseguro
     url = f"https://www.interseguro.pe/soat/api/v1/soat/consultar-soat-vigente/{placa}"
     
+    # Headers de alta prioridad para saltar bloqueos
     headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Referer": "https://www.interseguro.pe/soat/consulta-soat"
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+        "Accept": "application/json, text/plain, */*",
+        "Origin": "https://www.interseguro.pe",
+        "Referer": "https://www.interseguro.pe/soat/consulta-soat",
+        "Accept-Language": "es-ES,es;q=0.9",
     }
 
     try:
+        # Hacemos la petición simulando ser el sitio web
         response = requests.get(url, headers=headers, timeout=15)
         
         if response.status_code == 200:
@@ -19,53 +23,54 @@ def consultar_interseguro(placa):
             if data.get("success"):
                 return {"status": "success", "data": data.get("data")}
             else:
-                return {"status": "error", "message": "No se encontró información para esa placa."}
+                return {"status": "error", "message": "Placa no encontrada en Interseguro."}
+        elif response.status_code == 403:
+            return {"status": "error", "message": "Acceso denegado (El servidor detectó el script)."}
         else:
-            return {"status": "error", "message": f"Error del servidor de Interseguro ({response.status_code})"}
+            return {"status": "error", "message": f"Error servidor ({response.status_code})"}
+            
     except Exception as e:
-        return {"status": "error", "message": str(e)}
+        return {"status": "error", "message": f"Conexión fallida: {str(e)}"}
 
 def run():
-    st.markdown("<h1 style='text-align: center;'>🛡️ Consulta SOAT Interseguro</h1>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align: center;'>Fuente: Interseguro (Oficial)</p>", unsafe_allow_html=True)
+    st.markdown("### 🛡️ Extractor Detallado de SOAT")
+    st.caption("Fuente: Interseguro Directo (Bypass Seeker)")
 
-    placa = st.text_input("Ingrese Placa (ej: ABC123)", max_chars=6).upper()
+    placa = st.text_input("Ingrese Placa para el Puente", max_chars=6, placeholder="M3Z244").upper()
 
-    if st.button("📊 OBTENER INFORMACIÓN DETALLADA", use_container_width=True):
+    if st.button("🔍 EXTRAER DATOS VIVOS"):
         if not placa:
-            st.warning("Por favor, ingrese una placa.")
+            st.error("Ingresa una placa.")
             return
 
-        with st.spinner(f"Consultando base de datos de Interseguro para la placa {placa}..."):
-            res = consultar_interseguro(placa)
+        with st.spinner("Bypassing seguridad de Interseguro..."):
+            res = consultar_interseguro_detallado(placa)
             
             if res["status"] == "success":
                 info = res["data"]
                 st.balloons()
                 
-                # --- DISEÑO DE INFORMACIÓN DETALLADA ---
-                st.markdown("### 📋 Resultados de la Póliza")
-                
+                # Diseño de ficha detallada
                 with st.container(border=True):
-                    col1, col2 = st.columns(2)
+                    st.subheader(f"📄 Certificado: {info.get('numeroCertificado', 'S/N')}")
                     
+                    col1, col2 = st.columns(2)
                     with col1:
-                        st.write(f"**🔹 Aseguradora:** {info.get('companiaNombre', 'N/A')}")
-                        st.write(f"**🔹 Estado:** {info.get('estadoDescripcion', 'N/A')}")
-                        st.write(f"**🔹 Nro. Póliza:** {info.get('numeroCertificado', 'N/A')}")
+                        st.markdown(f"**Aseguradora:** {info.get('companiaNombre')}")
+                        st.markdown(f"**Estado:** `{info.get('estadoDescripcion')}`")
+                        st.markdown(f"**Uso:** {info.get('usoDescripcion')}")
                     
                     with col2:
-                        st.write(f"**📅 Inicio:** {info.get('fechaInicio', 'N/A')}")
-                        st.write(f"**📅 Fin:** {info.get('fechaFin', 'N/A')}")
-                        st.write(f"**🚗 Uso:** {info.get('usoDescripcion', 'N/A')}")
+                        st.markdown(f"**Vence el:** {info.get('fechaFin')}")
+                        st.markdown(f"**Inició el:** {info.get('fechaInicio')}")
+                        st.markdown(f"**Clase:** {info.get('claseDescripcion', 'N/A')}")
                 
-                # Información extra si está disponible
-                if info.get('claseDescripcion'):
-                    st.info(f"💡 **Tipo de Vehículo:** {info.get('claseDescripcion')}")
-                
-                st.success("✅ Información obtenida exitosamente y sin costo de créditos.")
+                # Mostramos el JSON crudo por si quieres ver más campos ocultos
+                with st.expander("Ver toda la data extraída"):
+                    st.json(info)
             else:
-                st.error(res["message"])
+                st.error(f"❌ No se pudo obtener: {res['message']}")
+                st.info("Nota: Algunas aseguradoras bloquean consultas externas masivas.")
 
 if __name__ == "__main__":
     run()
