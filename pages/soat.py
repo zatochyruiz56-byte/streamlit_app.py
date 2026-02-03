@@ -2,42 +2,37 @@ import streamlit as st
 import streamlit.components.v1 as components
 
 def run():
-    st.markdown("<h2 style='text-align: center; color: #1E3A8A;'>🛡️ Consulta SOAT Directa</h2>", unsafe_allow_html=True)
-    st.info("Escribe la placa y resuelve el captcha abajo para ver el resultado oficial.")
+    st.markdown("<h2 style='text-align: center;'>🔍 Central de Consultas SOAT</h2>", unsafe_allow_html=True)
+    
+    # Creamos dos pestañas para no saturar la pantalla
+    tab1, tab2 = st.tabs(["📊 Historial General (APESEG)", "📄 Descarga de PDF (Pacífico)"])
 
-    # Contenedor que recorta la página oficial para mostrar solo el formulario
-    # Ajustado según tus capturas para centrar el 'Número de Placa'
-    recorte_html = """
-    <div style="
-        width: 100%; 
-        height: 480px; 
-        overflow: hidden; 
-        border: 2px solid #2e59a8; 
-        border-radius: 12px; 
-        position: relative;
-        background: white;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-        
-        <iframe 
-            src="https://www.apeseg.org.pe/consultas-soat/" 
-            style="
-                width: 1000px; 
-                height: 1200px; 
-                position: absolute; 
-                top: -600px; /* Sube la web para ocultar el encabezado azul */
-                left: 70%; 
-                margin-left: -450px; /* Centra el contenido horizontalmente */
-                border: none;
-            "
-            scrolling="no">
-        </iframe>
-    </div>
-    """
+    with tab1:
+        st.caption("Usa este panel para ver la vigencia y el historial de certificados.")
+        # Ajuste para APESEG (según tus capturas de pantalla)
+        html_apeseg = """
+        <div style="width: 100%; height: 500px; overflow: hidden; border: 2px solid #1E3A8A; border-radius: 10px; position: relative;">
+            <iframe src="https://www.apeseg.org.pe/consultas-soat/" 
+                style="width: 1000px; height: 1200px; position: absolute; top: -385px; left: 50%; margin-left: -500px; border: none;"
+                scrolling="no"></iframe>
+        </div>
+        """
+        components.html(html_apeseg, height=520)
 
-    # Renderizamos el componente
-    components.html(recorte_html, height=500)
+    with tab2:
+        st.caption("Si el SOAT es de Pacífico, aquí podrás descargar el certificado oficial.")
+        # Ajuste para Pacífico Seguros
+        # top: -250px suele ocultar el banner principal de Pacífico
+        html_pacifico = """
+        <div style="width: 100%; height: 500px; overflow: hidden; border: 2px solid #0096d2; border-radius: 10px; position: relative;">
+            <iframe src="https://www.pacifico.com.pe/consulta-soat" 
+                style="width: 1000px; height: 1200px; position: absolute; top: -280px; left: 50%; margin-left: -500px; border: none;"
+                scrolling="no"></iframe>
+        </div>
+        """
+        components.html(html_pacifico, height=520)
 
-    st.warning("⚠️ Una vez des clic en 'Consultar', el resultado aparecerá en el cuadro blanco.")
+    st.success("✅ Ambas consultas se realizan en tiempo real desde las fuentes oficiales.")
 
 if __name__ == "__main__":
     run()
