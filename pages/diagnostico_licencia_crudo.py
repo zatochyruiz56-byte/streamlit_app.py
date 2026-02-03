@@ -3,48 +3,58 @@ import requests
 
 def run():
     st.title("🚗 Consulta de Licencia de Conducir")
-    st.info("Esta consulta utiliza el endpoint de vehículos para verificar licencias.")
-
-    # Configuración según la nueva documentación
+    
+    # Endpoint extraído de tu captura de documentación
     API_URL = "https://seeker-v6.com/vehiculos/licencia_conductor"
     TOKEN = "sk_live_104655a1666c3ea084ecc19f6b859a5fbb843f0aaac534ad"
     
-    dni = st.text_input("Ingrese DNI (8 dígitos)", max_chars=8)
+    dni = st.text_input("Ingrese el número de DNI:", max_chars=8)
     
     if st.button("🔍 CONSULTAR LICENCIA"):
         if len(dni) == 8:
+            # Encabezados estrictos según la documentación
             headers = {
                 "Authorization": f"Bearer {TOKEN}",
                 "Content-Type": "application/json"
             }
-            # Según la documentación, requiere 'dni' y 'tipo'
+            
+            # Payload con los dos parámetros requeridos: dni y tipo
             payload = {
                 "dni": dni,
                 "tipo": "dni" 
             }
 
             try:
-                with st.spinner("Buscando en el registro de conductores..."):
+                with st.spinner("Conectando con el servidor de transportes..."):
+                    # Realizamos la petición POST
                     response = requests.post(API_URL, json=payload, headers=headers)
-                    data = response.json()
-
-                if response.status_code == 200:
-                    if data.get("status") == "success":
-                        st.success("Licencia encontrada")
-                        st.json(data.get("data"))
-                    else:
-                        st.error(f"Mensaje de la API: {data.get('message')}")
-                else:
-                    st.error(f"Error técnico (HTTP {response.status_code})")
                 
-                # Inspección técnica para ver el error exacto
-                with st.expander("Ver respuesta técnica detallada"):
-                    st.write(data)
+                # Verificamos si la respuesta es JSON antes de procesar
+                try:
+                    data = response.json()
+                except:
+                    # Si falla aquí, mostramos el error real del servidor (HTML)
+                    st.error("❌ El servidor de licencias no está enviando una respuesta válida.")
+                    st.warning(f"Código de estado: {response.status_code}")
+                    with st.expander("Ver detalle técnico del error"):
+                        st.code(response.text)
+                    return
+
+                if response.status_code == 200 and data.get("status") == "success":
+                    st.success("Licencia encontrada con éxito")
+                    st.json(data.get("data"))
+                    
+                    if "creditos_restantes" in data:
+                        st.sidebar.metric("Créditos Disponibles", data["creditos_restantes"])
+                else:
+                    # Mostramos el mensaje de error que envíe la API
+                    mensaje = data.get("message", "Error desconocido")
+                    st.error(f"Error de la API: {mensaje}")
 
             except Exception as e:
-                st.error(f"Error de conexión: {str(e)}")
+                st.error(f"No se pudo establecer la conexión: {str(e)}")
         else:
-            st.warning("Por favor, ingrese un DNI válido.")
+            st.warning("El DNI debe tener 8 dígitos.")
 
 if __name__ == "__main__":
     run()
