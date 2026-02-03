@@ -2,6 +2,7 @@ import streamlit as st
 import requests
 import base64
 from pdf2image import convert_from_bytes
+import io
 
 def run():
     st.markdown("<h1 style='text-align: center;'>🏦 Reporte de Deudas SBS</h1>", unsafe_allow_html=True)
@@ -18,53 +19,60 @@ def run():
         headers = {"Authorization": f"Bearer {TOKEN}"}
         payload = {"dni": dni_input}
 
-        with st.spinner("Consultando SBS (esto puede demorar hasta 30 segundos)..."):
+        with st.spinner("Generando reporte oficial de deudas..."):
             try:
-                # Aumentamos el timeout porque los PDF de SBS son pesados
-                res = requests.post(url, headers=headers, json=payload, timeout=45)
+                res = requests.post(url, headers=headers, json=payload, timeout=60)
                 
-                # Verificamos si la respuesta es realmente un JSON
                 if res.status_code == 200:
                     try:
                         data = res.json()
                     except:
-                        st.error("El servidor respondió algo que no es JSON. Posible mantenimiento.")
-                        st.code(res.text[:500]) # Mostramos el inicio del error
+                        st.error("Error: La respuesta no es un formato válido.")
                         return
 
                     if data.get("status") == "success":
-                        # En SBS el PDF suele venir directo en la raíz o en 'data'
+                        # Buscamos el PDF en ambas ubicaciones posibles
                         pdf_b64 = data.get("pdf") or data.get("data", {}).get("pdf")
                         
                         if pdf_b64:
                             pdf_bytes = base64.b64decode(pdf_b64)
-                            st.success("✅ Reporte recuperado con éxito")
+                            
+                            # --- MEJORA DE FORMATO Y DESCARGA ---
+                            st.success("✅ Reporte generado correctamente")
+                            
+                            col1, col2 = st.columns(2)
+                            with col1:
+                                st.download_button(
+                                    label="📥 DESCARGAR PDF ORIGINAL",
+                                    data=pdf_bytes,
+                                    file_name=f"SBS_{dni_input}.pdf",
+                                    mime="application/pdf",
+                                    use_container_width=True
+                                )
+                            with col2:
+                                # Opción extra por si quieren imprimir directo
+                                st.info("💡 El PDF original mantiene el formato oficial A4.")
 
-                            st.download_button(
-                                label="📥 DESCARGAR REPORTE PDF",
-                                data=pdf_bytes,
-                                file_name=f"SBS_{dni_input}.pdf",
-                                mime="application/pdf",
-                                use_container_width=True
-                            )
-
-                            # Visualización segura
-                            images = convert_from_bytes(pdf_bytes, dpi=120)
+                            # --- VISUALIZACIÓN DE ALTA CALIDAD ---
+                            # Subimos el DPI a 200 para que las letras pequeñas de la SBS se lean
+                            images = convert_from_bytes(pdf_bytes, dpi=200)
+                            
+                            st.markdown("---")
+                            st.subheader("👁️ Vista Previa del Documento")
+                            
                             for i, img in enumerate(images):
-                                st.image(img, caption=f"Página {i+1}", use_container_width=True)
+                                # Usamos un expander para no ocupar tanto espacio si son muchas páginas
+                                with st.expander(f"Página {i+1} del Reporte", expanded=True if i==0 else False):
+                                    st.image(img, use_container_width=True)
                         else:
-                            st.error("No se encontró la cadena PDF en la respuesta.")
-                            st.json(data) # Mostramos qué llegó para investigar
+                            st.error("No se encontró el contenido del PDF.")
                     else:
-                        st.error(f"API Error: {data.get('message', 'DNI no encontrado o sin historial')}")
+                        st.error(f"Error de API: {data.get('message')}")
                 else:
-                    st.error(f"Error del servidor (Código {res.status_code})")
-                    st.info("Esto puede pasar si el servicio de la SBS está caído temporalmente.")
+                    st.error(f"Servidor fuera de línea (Código {res.status_code})")
 
-            except requests.exceptions.Timeout:
-                st.error("⏳ Tiempo de espera agotado. La SBS está demorando demasiado.")
             except Exception as e:
-                st.error(f"Error inesperado: {str(e)}")
+                st.error(f"Error de visualización: {str(e)}")
 
 if __name__ == "__main__":
     run()
