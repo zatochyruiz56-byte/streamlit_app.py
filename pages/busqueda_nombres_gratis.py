@@ -1,45 +1,44 @@
 import streamlit as st
 import requests
 
-st.set_page_config(page_title="Super Debugger", layout="wide")
+st.set_page_config(page_title="API Explorer", layout="wide")
 
-st.title("🚀 Super Debugger Multi-Formato")
-st.write("Probaremos enviando los datos de dos formas distintas para ver cuál funciona.")
+st.title("🔍 Explorador Inteligente de API")
+st.write("Probaremos 4 combinaciones de nombres de campos para ver cuál acepta la API.")
 
-with st.sidebar:
-    st.header("Parámetros")
-    n = st.text_input("Nombres", value="alex")
-    p = st.text_input("Paterno", value="ruiz")
-    m = st.text_input("Materno", value="")
-    token = "sk_live_104655a1666c3ea084ecc19f6b859a5fbb843f0aaac534ad"
+n = st.text_input("Nombre a buscar", value="alex")
+p = st.text_input("Apellido Paterno", value="ruiz")
 
-if st.button("EJECUTAR PRUEBAS DE FUERZA BRUTA", type="primary"):
+if st.button("INICIAR ESCANEO DE PARÁMETROS", type="primary"):
     URL = "https://seeker-v6.com/personas/apiBasico/nombresApellidos"
-    HEADERS = {
-        "Authorization": f"Bearer {token}",
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-    }
-    PAYLOAD = {"nombres": n, "paterno": p, "materno": m, "edadMin": "0", "edadMax": "100"}
+    TOKEN = "sk_live_104655a1666c3ea084ecc19f6b859a5fbb843f0aaac534ad"
+    HEADERS = {"Authorization": f"Bearer {TOKEN}"}
 
-    col1, col2 = st.columns(2)
+    # Definimos 4 variantes de parámetros comunes
+    variantes = [
+        {"nombres": n, "paterno": p, "materno": "", "edadMin": "0", "edadMax": "100"},
+        {"nombre": n, "apellido_paterno": p, "apellido_materno": ""},
+        {"nombres": n, "apellidoPaterno": p, "apellidoMaterno": ""},
+        {"nombres": n, "paterno": p} # Versión mínima
+    ]
 
-    with col1:
-        st.subheader("Prueba 1: Modo JSON")
-        try:
-            r1 = requests.post(URL, headers=HEADERS, json=PAYLOAD, timeout=10)
-            st.code(f"Status: {r1.status_code}")
-            st.json(r1.json())
-        except Exception as e:
-            st.error(f"Error en Prueba 1: {e}")
+    cols = st.columns(4)
+    
+    for i, payload in enumerate(variantes):
+        with cols[i]:
+            st.info(f"Variante {i+1}")
+            st.caption(f"Enviando: {list(payload.keys())}")
+            try:
+                # Probamos modo data (Formulario) que es el más común
+                r = requests.post(URL, headers=HEADERS, data=payload, timeout=5)
+                res = r.json()
+                
+                if res.get("status") == "success" or "data" in res:
+                    st.success("✅ ¡FUNCIONA!")
+                    st.json(res)
+                else:
+                    st.error("❌ Error Interno")
+                    st.json(res)
+            except Exception as e:
+                st.error("Error técnico")
 
-    with col2:
-        st.subheader("Prueba 2: Modo Formulario")
-        try:
-            r2 = requests.post(URL, headers=HEADERS, data=PAYLOAD, timeout=10)
-            st.code(f"Status: {r2.status_code}")
-            st.json(r2.json())
-        except Exception as e:
-            st.error(f"Error en Prueba 2: {e}")
-
-    st.divider()
-    st.info("Si ambas dan 'Error Interno', es posible que el servidor de la API esté caído o los parámetros (nombres, paterno, etc) hayan cambiado de nombre.")
