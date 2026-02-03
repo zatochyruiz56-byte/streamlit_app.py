@@ -1,63 +1,60 @@
 import streamlit as st
 import requests
 
-st.set_page_config(page_title="Auth Debugger", layout="wide")
+st.set_page_config(page_title="Endpoint Scanner", layout="wide")
 
-st.title("🔑 Validador de Token Seeker")
-st.write("Estamos analizando por qué el servidor te pide Login.")
+st.title("🔍 Escáner de Rutas Seeker v6")
+st.info("El objetivo es encontrar una ruta que devuelva JSON y no HTML.")
 
 token = st.text_input("Token sk_live", value="sk_live_104655a1666c3ea084ecc19f6b859a5fbb843f0aaac534ad")
-dni = "60799566"
+dni = st.text_input("DNI de prueba", value="60799566")
 
-if st.button("CORRER DIAGNÓSTICO DE RUTA"):
-    # Probamos dos posibles URLs
-    endpoints = [
-        "https://seeker-v6.com/vehiculos/licencia_conductor",
-        "https://seeker-v6.com/api/vehiculos/licencia_conductor" # Variante común
+if st.button("INICIAR ESCANEO DE API"):
+    # Lista de rutas que suelen usar las APIs de Seeker
+    rutas_a_probar = [
+        "https://seeker-v6.com/api/licencia_conductor",
+        "https://seeker-v6.com/api/v1/vehiculos/licencia_conductor",
+        "https://api.seeker-v6.com/vehiculos/licencia_conductor",
+        "https://seeker-v6.com/api/v2/licencia_conductor",
+        "https://seeker-v6.com/vehiculos/licencia_conductor" # Tu ruta actual (para comparar)
     ]
     
-    for url in endpoints:
-        st.subheader(f"Probando: {url}")
-        
-        headers = {
-            "Authorization": f"Bearer {token}",
-            "Content-Type": "application/json",
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0"
-        }
-        
-        try:
-            # allow_redirects=False es CLAVE: queremos ver el error antes de que nos mande al login
-            r = requests.post(url, headers=headers, json={"dni": dni}, allow_redirects=False, timeout=15)
-            
-            st.code(f"Status Code: {r.status_code}")
-            
-            if r.status_code in [301, 302]:
-                target = r.headers.get("Location")
-                st.warning(f"🚨 REDIRECCIÓN DETECTADA: El servidor te intentó mandar a: {target}")
-                st.info("Esto significa que el Token NO FUE ACEPTADO para esta ruta.")
-            
-            elif r.status_code == 401:
-                st.error("❌ TOKEN INVÁLIDO: El servidor dice explícitamente que el token no sirve.")
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json",
+        "Accept": "application/json", # IMPORTANTE: Pedimos JSON explícitamente
+        "User-Agent": "Mozilla/5.0"
+    }
+    
+    for url in rutas_a_probar:
+        with st.expander(f"Probando: {url}", expanded=False):
+            try:
+                r = requests.post(url, headers=headers, json={"dni": dni}, timeout=10)
                 
-            elif r.status_code == 200:
-                st.success("✅ ¡CONEXIÓN EXITOSA! Esta es la ruta correcta.")
+                st.write(f"**Status:** {r.status_code}")
+                
+                # DETECCIÓN DE LOGIN (Falso Positivo)
+                if "Login Seeker" in r.text or "<!DOCTYPE html>" in r.text:
+                    st.warning("⚠️ ESTO ES UNA WEB, NO UNA API. (Te mandó al Login)")
+                
+                # DETECCIÓN DE DATOS REALES
                 try:
-                    st.json(r.json())
+                    data = r.json()
+                    st.success("🎯 ¡ENCONTRADO! Esta ruta devuelve JSON real.")
+                    st.json(data)
+                    st.balloons()
                 except:
-                    st.write("La respuesta no es JSON, es texto:")
-                    st.text(r.text[:500])
-            else:
-                st.error(f"Error desconocido: {r.status_code}")
-                st.write(r.text[:300])
-                
-        except Exception as e:
-            st.error(f"Fallo al conectar a {url}: {str(e)}")
+                    st.error("No es JSON. Es texto plano o HTML.")
+                    if r.status_code == 200:
+                        st.text_area("Contenido recibido (Primeros 200 caracteres):", r.text[:200])
 
-st.divider()
+            except Exception as e:
+                st.error(f"Error de conexión: {str(e)}")
+
 st.markdown("""
-### 💡 Pasos a seguir si sale 'Login Seeker':
-1. **Revisa la documentación:** Asegúrate de que la URL no sea `https://api.seeker-v6.com/...`
-2. **Token expirado:** Confirma en tu panel de Seeker que el token `sk_live` sigue activo.
-3. **Whitelist de IP:** Algunos servidores bloquean las IPs de Streamlit.
+---
+### 🚦 Guía de Resultados
+- **Ruta con Login:** Es para humanos, no para tu código.
+- **Ruta con JSON:** Es la que debes usar en tu aplicación final.
+- **Status 404:** Esa dirección no existe en el servidor.
 """)
-
