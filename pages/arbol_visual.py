@@ -2,45 +2,52 @@ import streamlit as st
 import requests
 
 def run():
-    st.markdown("<h1 style='text-align: center;'>🛠️ Debug: Árbol Visual (Data Cruda)</h1>", unsafe_allow_html=True)
+    st.markdown("<h1 style='text-align: center;'>🎨 Árbol Genealógico Visual Pro</h1>", unsafe_allow_html=True)
 
     TOKEN = "sk_live_104655a1666c3ea084ecc19f6b859a5fbb843f0aaac534ad"
-    dni_input = st.text_input("Ingrese DNI para inspección de datos", max_chars=8)
+    dni_input = st.text_input("Ingrese DNI para generar árbol", max_chars=8, placeholder="45106211")
 
-    if st.button("📡 OBTENER RESPUESTA CRUDA"):
+    if st.button("🖼️ GENERAR ÁRBOL CON FOTOS", use_container_width=True):
         if not dni_input:
-            st.warning("Ingrese un DNI.")
+            st.warning("Por favor, ingrese un DNI.")
             return
 
         url = "https://seeker-v6.com/personas/arbol-visualApi"
         headers = {"Authorization": f"Bearer {TOKEN}"}
         params = {"dni": dni_input}
 
-        with st.spinner("Consultando servidor..."):
+        with st.spinner("Dibujando árbol familiar y cargando fotografías..."):
             try:
                 res = requests.get(url, headers=headers, params=params)
                 
-                # Mostramos el Código de Estado HTTP
-                st.info(f"Código de Respuesta del Servidor: {res.status_code}")
-
                 if res.status_code == 200:
-                    try:
-                        # Intentamos mostrarlo como JSON formateado
-                        raw_data = res.json()
-                        st.subheader("📦 JSON Recibido:")
-                        st.json(raw_data)
+                    data = res.json()
+                    
+                    if data.get("status") == "success":
+                        # --- CLAVE DEL AJUSTE ---
+                        # Usamos la llave 'svg' que confirmamos en la data cruda
+                        svg_code = data.get("svg")
                         
-                        # Si el SVG está en el campo 'data', lo mostramos como texto plano para inspeccionarlo
-                        if "data" in raw_data:
-                            st.subheader("📝 Contenido del campo 'data' (Primeros 500 caracteres):")
-                            st.text(str(raw_data["data"])[:500] + "...")
+                        if svg_code:
+                            st.success("✅ Árbol generado con éxito")
                             
-                    except Exception:
-                        # Si no es JSON, mostramos el texto plano (posiblemente el SVG directo)
-                        st.subheader("📄 Texto Plano Recibido:")
-                        st.code(res.text, language="xml")
+                            # Renderizamos el SVG dentro de un contenedor con scroll
+                            # El height de 1000px asegura que se vea gran parte del árbol
+                            st.components.v1.html(
+                                f"""
+                                <div style="background-color: white; padding: 20px; border-radius: 10px; overflow: auto;">
+                                    {svg_code}
+                                </div>
+                                """,
+                                height=1000,
+                                scrolling=True
+                            )
+                        else:
+                            st.error("El servidor no envió el código del gráfico.")
+                    else:
+                        st.error(f"Error: {data.get('message', 'No se pudo obtener el árbol')}")
                 else:
-                    st.error(f"Error del Servidor: {res.text}")
+                    st.error(f"Error {res.status_code}: El servidor no responde correctamente.")
                     
             except Exception as e:
                 st.error(f"Error de conexión: {e}")
