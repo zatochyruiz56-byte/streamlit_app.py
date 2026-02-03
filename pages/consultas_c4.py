@@ -1,46 +1,30 @@
-import streamlit as st
-import requests
+# ... (dentro del bloque try después de requests.post)
+                response = requests.post(API_URL, json=payload, headers=headers)
+                
+                # Esto te dirá el código de estado exacto (ej. 401, 404, 500)
+                st.write(f"Código de estado HTTP: {response.status_code}")
 
-def run():
-    st.title("📄 Consulta C4 Premium")
-    
-    API_URL = "https://seeker-v6.com/personas/api/consultapremiunc4"
-    TOKEN = "sk_live_104655a1666c3ea084ecc19f6b859a5fbb843f0aaac534ad"
-    
-    dni = st.text_input("Ingrese DNI de 8 dígitos:", max_chars=8)
-    
-    if st.button("🚀 REALIZAR CONSULTA"):
-        if len(dni) == 8:
-            headers = {
-                "Authorization": f"Bearer {TOKEN}",
-                "Content-Type": "application/json"
-            }
-            payload = {"dni": dni}
-
-            try:
-                with st.spinner("Consultando con RENIEC..."):
-                    response = requests.post(API_URL, json=payload, headers=headers)
+                try:
                     data = response.json()
+                except Exception:
+                    st.error("La respuesta no es un JSON válido")
+                    st.text(response.text) # Muestra el HTML/Texto crudo si falla el JSON
+                    return
 
                 if response.status_code == 200:
                     if data.get("status") == "success":
                         st.success("¡Datos encontrados!")
                         st.json(data.get("data"))
                     else:
-                        # Error específico del proveedor (lo que te pasa ahora)
-                        st.error(f"⚠️ Servidor dice: {data.get('message')}")
-                        st.info("Esto suele ser un problema temporal de RENIEC. Intenta en unos minutos.")
+                        st.error(f"Error de la API: {data.get('message')}")
+                elif response.status_code == 401:
+                    st.error("Token inválido o expirado.")
+                elif response.status_code == 429:
+                    st.error("Has superado el límite de peticiones (Rate Limit).")
                 else:
-                    st.error(f"Error de API: {response.status_code}")
+                    st.error("Error desconocido en el servidor externo.")
                 
-                # Mostrar siempre los créditos si vienen en la respuesta
-                if "creditos_restantes" in data:
-                    st.sidebar.metric("Créditos Restantes", data["creditos_restantes"])
-
-            except Exception as e:
-                st.error("Error de conexión local. Revisa tu internet.")
-        else:
-            st.warning("Escriba un DNI válido.")
-
-if __name__ == "__main__":
-    run()
+                # Muestra TODO lo que devuelve la API para no perder detalles
+                with st.expander("Inspección completa de respuesta"):
+                    st.write("Headers de respuesta:", response.headers)
+                    st.write("Cuerpo completo:", data)
