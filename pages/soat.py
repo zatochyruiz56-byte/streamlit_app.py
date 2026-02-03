@@ -2,42 +2,47 @@ import streamlit as st
 import streamlit.components.v1 as components
 
 def run():
-    st.set_page_config(page_title="Consulta SOAT Compacta", layout="centered")
+    st.markdown("<h3 style='text-align: center;'>🛡️ Consulta SOAT Instantánea</h3>", unsafe_allow_html=True)
 
-    st.markdown("<h2 style='text-align: center;'>📄 Consulta Directa APESEG</h2>", unsafe_allow_html=True)
-    st.caption("Resuelve el captcha en el recuadro para ver el estado de vigencia.")
-
-    # --- TRUCO DE RECORTE (CSS) ---
-    # Creamos un contenedor con 'overflow: hidden' para ocultar lo que no queremos ver.
-    # El iframe se desplaza hacia arriba con un margen negativo para centrar el formulario.
-    recorte_css = """
+    # --- CONFIGURACIÓN DE LA MÁSCARA FIJA ---
+    # top: Ajusta qué tan arriba empieza el recorte (para ocultar el logo)
+    # height: Altura del contenedor (la 'ventana' que ve el usuario)
+    # scrolling="no": Desactiva el scroll del navegador en el iframe
+    
+    recorte_fijo_css = """
     <style>
-        .iframe-container {
+        .portal-container {
             width: 100%;
-            height: 500px;
-            overflow: hidden;
-            border: 2px solid #e6e9ef;
-            border-radius: 10px;
+            height: 420px; /* Altura justa para el formulario y el botón */
+            overflow: hidden; /* Elimina el scroll del contenedor */
+            border: 1px solid #d1d5db;
+            border-radius: 12px;
             position: relative;
-            background: white;
+            background-color: white;
+            box-shadow: 0px 4px 10px rgba(0,0,0,0.05);
         }
-        .iframe-container iframe {
+        .portal-container iframe {
             position: absolute;
-            top: -380px; /* Ajusta este valor para subir/bajar el recorte superior */
-            left: -10px;
-            width: 100%;
-            height: 1200px; /* Altura total para permitir el scroll interno */
+            top: -385px; /* Sube la página para ocultar el encabezado */
+            left: 50%;
+            transform: translateX(-50%); /* Centra el contenido horizontalmente */
+            width: 1200px; /* Ancho mayor para capturar el centro de la web original */
+            height: 1500px;
         }
     </style>
-    <div class="iframe-container">
-        <iframe src="https://www.apeseg.org.pe/consultas-soat/" frameborder="0"></iframe>
+    <div class="portal-container">
+        <iframe 
+            src="https://www.apeseg.org.pe/consultas-soat/" 
+            frameborder="0" 
+            scrolling="no"> 
+        </iframe>
     </div>
     """
 
-    # Renderizamos el componente con el recorte
-    components.html(recorte_css, height=520)
+    # Renderizamos el recorte
+    components.html(recorte_fijo_css, height=430)
 
-    st.success("✅ Una vez que des clic en 'Consultar', desplázate dentro del cuadro para ver el resultado.")
+    st.caption("⚠️ Nota: Resuelve el captcha dentro del cuadro. El resultado aparecerá en este mismo espacio.")
 
 if __name__ == "__main__":
     run()
