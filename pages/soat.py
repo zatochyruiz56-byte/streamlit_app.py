@@ -2,40 +2,37 @@ import streamlit as st
 import streamlit.components.v1 as components
 
 def run():
-    st.markdown("<h2 style='text-align: center; color: #1E3A8A;'>📄 Descarga de SOAT Electrónico</h2>", unsafe_allow_html=True)
-    st.info("Esta plataforma permite obtener el certificado digital de Interseguro y otras compañías vinculadas.")
+    st.markdown("<h2 style='text-align: center; color: #1E3A8A;'>🔍 Central de Consultas SOAT</h2>", unsafe_allow_html=True)
 
-    # --- ESPEJO DE INTERSEGURO (ZONA DE DESCARGA) ---
-    # Ajustado para centrar el buscador de certificados
-    html_descarga = """
-    <div style="
-        width: 100%; 
-        height: 550px; 
-        overflow: hidden; 
-        border: 2px solid #00ac4e; 
-        border-radius: 12px; 
-        position: relative;
-        background: white;">
-        
-        <iframe 
-            src="https://www.interseguro.pe/soat/consulta-soat" 
-            style="
-                width: 1000px; 
-                height: 1500px; 
-                position: absolute; 
-                top: -320px; /* Ajuste para saltar el banner y caer en el buscador */
-                left: 50%; 
-                margin-left: -500px; 
-                border: none;
-            "
-            scrolling="no">
-        </iframe>
+    # --- CUADRO 1: APESEG (Historial y Vigencia) ---
+    st.markdown("### 📊 1. Historial General")
+    # Este es el código que ya te funcionaba perfectamente para APESEG
+    html_apeseg = """
+    <div style="width: 100%; height: 480px; overflow: hidden; border: 2px solid #1E3A8A; border-radius: 12px; position: relative; background: white;">
+        <iframe src="https://www.apeseg.org.pe/consultas-soat/" 
+            style="width: 1000px; height: 1200px; position: absolute; top: -385px; left: 50%; margin-left: -500px; border: none;"
+            scrolling="no"></iframe>
     </div>
     """
+    components.html(html_apeseg, height=500)
 
-    components.html(html_descarga, height=570)
+    st.markdown("---")
+
+    # --- CUADRO 2: PACÍFICO (Descarga de PDF) ---
+    st.markdown("### 📄 2. Descarga de Certificado")
+    st.caption("Usa este cuadro para obtener el PDF si el vehículo es de Pacífico.")
     
-    st.caption("Nota: Si el SOAT no es de esta aseguradora, el sistema te indicará a qué compañía pertenece.")
+    # IMPORTANTE: Usamos un proxy para que Pacífico no rechace la conexión
+    html_pacifico = """
+    <div style="width: 100%; height: 480px; overflow: hidden; border: 2px solid #0096d2; border-radius: 12px; position: relative; background: white;">
+        <iframe src="https://api.allorigins.win/raw?url=https://www.pacifico.com.pe/consulta-soat" 
+            style="width: 1000px; height: 1500px; position: absolute; top: -300px; left: 50%; margin-left: -500px; border: none;"
+            scrolling="no"></iframe>
+    </div>
+    """
+    components.html(html_pacifico, height=500)
+
+    st.success("✅ Ambas fuentes están listas para consultar.")
 
 if __name__ == "__main__":
     run()
