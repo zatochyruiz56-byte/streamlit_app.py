@@ -1,14 +1,14 @@
 import streamlit as st
 import requests
 import base64
-from pdf2image import convert_from_bytes
+from PIL import Image
 import io
 
 def run():
     st.markdown("<h1 style='text-align: center;'>🏦 Reporte de Deudas SBS</h1>", unsafe_allow_html=True)
 
     TOKEN = "sk_live_104655a1666c3ea084ecc19f6b859a5fbb843f0aaac534ad"
-    dni_input = st.text_input("Ingrese DNI para consulta SBS", max_chars=8)
+    dni_input = st.text_input("Ingrese DNI para consulta SBS", max_chars=8, placeholder="45106211")
 
     if st.button("📊 GENERAR REPORTE SBS", use_container_width=True):
         if not dni_input:
@@ -19,60 +19,55 @@ def run():
         headers = {"Authorization": f"Bearer {TOKEN}"}
         payload = {"dni": dni_input}
 
-        with st.spinner("Generando reporte oficial de deudas..."):
+        with st.spinner("Procesando formato oficial SBS..."):
             try:
+                # Timeout largo porque este reporte consume 5 créditos y es pesado
                 res = requests.post(url, headers=headers, json=payload, timeout=60)
                 
-                if res.status_code == 200:
-                    try:
-                        data = res.json()
-                    except:
-                        st.error("Error: La respuesta no es un formato válido.")
-                        return
+                # Si el servidor responde con HTML de Login, es un error de sesión de la API
+                if "text/html" in res.headers.get("Content-Type", ""):
+                    st.error("❌ Error de Sesión: La API redirigió al Login. Intenta de nuevo en unos momentos.")
+                    return
 
-                    if data.get("status") == "success":
-                        # Buscamos el PDF en ambas ubicaciones posibles
-                        pdf_b64 = data.get("pdf") or data.get("data", {}).get("pdf")
+                data = res.json()
+
+                if data.get("status") == "success":
+                    st.success("✅ Datos recuperados")
+                    
+                    # Intentamos extraer el contenido independientemente del nombre de la llave
+                    # Seeker a veces usa 'pdf' y otras veces 'base64' dentro de 'data'
+                    contenido_raw = data.get("pdf") or data.get("data", {}).get("pdf") or data.get("data", {}).get("base64")
+
+                    if contenido_raw:
+                        # Convertimos a bytes para determinar si es imagen o PDF
+                        file_bytes = base64.b64decode(contenido_raw)
                         
-                        if pdf_b64:
-                            pdf_bytes = base64.b64decode(pdf_b64)
-                            
-                            # --- MEJORA DE FORMATO Y DESCARGA ---
-                            st.success("✅ Reporte generado correctamente")
-                            
-                            col1, col2 = st.columns(2)
-                            with col1:
-                                st.download_button(
-                                    label="📥 DESCARGAR PDF ORIGINAL",
-                                    data=pdf_bytes,
-                                    file_name=f"SBS_{dni_input}.pdf",
-                                    mime="application/pdf",
-                                    use_container_width=True
-                                )
-                            with col2:
-                                # Opción extra por si quieren imprimir directo
-                                st.info("💡 El PDF original mantiene el formato oficial A4.")
-
-                            # --- VISUALIZACIÓN DE ALTA CALIDAD ---
-                            # Subimos el DPI a 200 para que las letras pequeñas de la SBS se lean
-                            images = convert_from_bytes(pdf_bytes, dpi=200)
-                            
-                            st.markdown("---")
-                            st.subheader("👁️ Vista Previa del Documento")
-                            
+                        # --- VISUALIZADOR MULTI-FORMATO ---
+                        if file_bytes.startswith(b'%PDF'):
+                            # Si es PDF, usamos el conversor que ya tienes
+                            from pdf2image import convert_from_bytes
+                            images = convert_from_bytes(file_bytes, dpi=150)
                             for i, img in enumerate(images):
-                                # Usamos un expander para no ocupar tanto espacio si son muchas páginas
-                                with st.expander(f"Página {i+1} del Reporte", expanded=True if i==0 else False):
-                                    st.image(img, use_container_width=True)
+                                st.image(img, caption=f"Página {i+1}", use_container_width=True)
                         else:
-                            st.error("No se encontró el contenido del PDF.")
+                            # Si es imagen directa (JPG/PNG), la mostramos de una
+                            st.image(file_bytes, caption="Reporte SBS Oficial", use_container_width=True)
+
+                        # Botón de descarga universal
+                        st.download_button(
+                            label="📥 DESCARGAR REPORTE",
+                            data=file_bytes,
+                            file_name=f"SBS_{dni_input}.pdf", # Lo guardamos como PDF por estándar
+                            mime="application/pdf"
+                        )
                     else:
-                        st.error(f"Error de API: {data.get('message')}")
+                        st.warning("La respuesta fue exitosa pero no contiene un archivo visualizable.")
+                        st.json(data)
                 else:
-                    st.error(f"Servidor fuera de línea (Código {res.status_code})")
+                    st.error(f"API Error: {data.get('message', 'DNI no encontrado')}")
 
             except Exception as e:
-                st.error(f"Error de visualización: {str(e)}")
+                st.error(f"Error en el formato: {str(e)}")
 
 if __name__ == "__main__":
     run()
