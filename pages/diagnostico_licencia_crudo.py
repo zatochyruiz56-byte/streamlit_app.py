@@ -1,63 +1,54 @@
 import streamlit as st
 import requests
 
-st.set_page_config(page_title="Auth Debugger Pro", layout="wide")
+st.set_page_config(page_title="Seeker v6 Oficial", page_icon="🚗")
 
-st.title("🛡️ Seeker v6: Brute-Force Auth Debugger")
-st.write("Probando variaciones de autenticación para la URL oficial.")
+st.title("🚗 Consulta de Licencia Oficial")
+st.markdown("---")
 
-url = st.text_input("URL Oficial", value="https://seeker-v6.com/vehiculos/licencia_conductor")
-token = st.text_input("Tu Token sk_live", value="sk_live_104655a1666c3ea084ecc19f6b859a5fbb843f0aaac534ad")
-dni = st.text_input("DNI", value="60799566")
+# Configuración según Documentación Oficial
+URL = "https://seeker-v6.com/vehiculos/licencia_conductor"
+TOKEN = "sk_live_104655a1666c3ea084ecc19f6b859a5fbb843f0aaac534ad"
 
-if st.button("PROBAR TODAS LAS COMBINACIONES"):
-    # Definimos diferentes formas de enviar el token
-    variaciones_headers = [
-        {"name": "Standard Bearer", "headers": {"Authorization": f"Bearer {token}"}},
-        {"name": "Simple Authorization", "headers": {"Authorization": token}},
-        {"name": "Token Header", "headers": {"Token": token}},
-        {"name": "X-API-KEY Header", "headers": {"x-api-key": token}},
-        {"name": "Key Header", "headers": {"key": token}},
-    ]
+col1, col2 = st.columns(2)
+with col1:
+    dni_input = st.text_input("Número de DNI", value="60799566")
+with col2:
+    tipo_input = st.selectbox("Tipo de Consulta", ["dni", "licencia"])
 
-    for v in variaciones_headers:
-        with st.expander(f"Método: {v['name']}", expanded=False):
-            try:
-                # Añadimos Content-Type y Accept JSON para forzar respuesta de API
-                headers = v['headers']
-                headers.update({
-                    "Content-Type": "application/json",
-                    "Accept": "application/json",
-                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0"
-                })
-                
-                # Intentamos con POST
-                r = requests.post(url, headers=headers, json={"dni": dni}, timeout=10)
-                
-                st.write(f"**Status:** {r.status_code}")
-                
-                # Si el servidor responde con JSON, ¡LO LOGRAMOS!
-                try:
-                    data = r.json()
-                    st.success(f"🎯 ¡ÉXITO! El método '{v['name']}' es el correcto.")
+if st.button("CONSULTAR AHORA (Costo: 3 Créditos)"):
+    headers = {
+        "Authorization": f"Bearer {TOKEN}",
+        "Content-Type": "application/json"
+    }
+    
+    # Payload exacto como pide la documentación
+    payload = {
+        "dni": dni_input,
+        "tipo": tipo_input
+    }
+    
+    with st.spinner("Conectando con Seeker DataAPI..."):
+        try:
+            response = requests.post(URL, headers=headers, json=payload, timeout=15)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if data.get("status") == "success":
+                    st.success("✅ Datos recuperados con éxito")
                     st.json(data)
-                    st.balloons()
-                except:
-                    if "Login Seeker" in r.text:
-                        st.error("❌ RECHAZADO: El servidor ignoró este header y mostró el Login.")
-                    else:
-                        st.warning("Respuesta extraña (No es JSON ni Login).")
-                        st.text(r.text[:500])
-                        
-            except Exception as e:
-                st.error(f"Error: {str(e)}")
+                else:
+                    st.error(f"Error de la API: {data.get('message', 'Desconocido')}")
+            elif response.status_code == 401:
+                st.error("❌ Token inválido o expirado.")
+            elif response.status_code == 403:
+                st.error("❌ Saldo insuficiente (Costo: 3 créditos).")
+            else:
+                st.warning(f"Respuesta inesperada (Status: {response.status_code})")
+                st.text(response.text)
+                
+        except Exception as e:
+            st.error(f"Error de conexión: {str(e)}")
 
 st.divider()
-st.info("""
-**Nota importante:** Si todos los métodos fallan y muestran 'RECHAZADO', significa que la URL 
-'https://seeker-v6.com/vehiculos/licencia_conductor' **NO ES UNA API**, sino una página web 
-exclusiva para navegadores (con cookies). 
-
-En ese caso, busca en tu panel de Seeker una sección que diga **'Documentación API'** o **'API para Desarrolladores'**, 
-porque la dirección debe ser distinta (ejemplo: 'api.seeker-v6.com').
-""")
+st.caption("Asegúrate de tener créditos suficientes en tu cuenta de Seeker.")
