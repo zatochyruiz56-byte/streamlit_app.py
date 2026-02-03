@@ -1,16 +1,20 @@
 import streamlit as st
 import requests
-import json
+import streamlit.components.v1 as components
 
-st.set_page_config(page_title="Seeker Binary Debugger", layout="centered")
+st.set_page_config(page_title="API Direct Inspector", layout="wide")
 
-st.title("🪪 Analizador de Licencia Cruda")
-st.write("Usa este script para ver si la API te está enviando una Imagen, un PDF o un JSON.")
+st.title("🔍 Inspector de Respuesta Directa")
+st.write("Verás exactamente lo que el servidor 'Seeker' está escupiendo.")
 
-dni_input = st.text_input("DNI del Conductor", value="60799566")
-tipo_input = st.selectbox("Nivel de Detalle", ["BÁSICO", "COMPLETO"])
+col1, col2 = st.columns([1, 1])
 
-if st.button("EXTRAER INFORMACIÓN AHORA", type="primary"):
+with col1:
+    dni = st.text_input("DNI", value="60799566")
+with col2:
+    tipo = st.selectbox("Tipo", ["BÁSICO", "COMPLETO"])
+
+if st.button("INSPECCIONAR RESPUESTA", type="primary"):
     url = "https://seeker-v6.com/vehiculos/licencia_conductor"
     token = "sk_live_104655a1666c3ea084ecc19f6b859a5fbb843f0aaac534ad"
     
@@ -19,51 +23,38 @@ if st.button("EXTRAER INFORMACIÓN AHORA", type="primary"):
         "Content-Type": "application/json"
     }
     
-    payload = {"dni": dni_input, "tipo": tipo_input}
+    payload = {"dni": dni, "tipo": tipo}
 
-    with st.status("Consultando Servidor Seeker...", expanded=True) as status:
-        try:
-            response = requests.post(url, headers=headers, json=payload, timeout=30)
-            
-            # Analizar el tipo de contenido que llega
-            content_type = response.headers.get("Content-Type", "").lower()
-            
-            st.subheader("📡 Informe de Respuesta")
-            st.code(f"Código HTTP: {response.status_code}")
-            st.info(f"Tipo de Datos Recibidos: {content_type}")
+    try:
+        r = requests.post(url, headers=headers, json=payload, timeout=20)
+        
+        st.divider()
+        st.subheader("📊 Datos Técnicos (Headers)")
+        st.json(dict(r.headers))
+        
+        st.write(f"**Status Code:** {r.status_code}")
+        st.write(f"**Content-Type:** {r.headers.get('Content-Type')}")
 
-            if response.status_code == 200:
-                status.update(label="✅ Datos capturados correctamente", state="complete")
-                
-                # Caso 1: Es un JSON (Texto de datos)
-                if "application/json" in content_type:
-                    st.success("Se recibió un paquete de datos JSON")
-                    st.json(response.json())
-                
-                # Caso 2: Es una Imagen (Foto del carnet/conductor)
-                elif "image" in content_type:
-                    st.success("Se recibió una IMAGEN binaria")
-                    st.image(response.content, caption="Vista previa del resultado")
-                    st.download_button("Descargar Imagen", response.content, "resultado.jpg")
-                
-                # Caso 3: Es un PDF (Récord oficial)
-                elif "pdf" in content_type:
-                    st.success("Se recibió un documento PDF")
-                    st.download_button("📥 DESCARGAR DOCUMENTO PDF", response.content, "record_conductor.pdf")
-                    st.info("Haz clic arriba para abrir el archivo.")
-                
-                # Caso 4: Desconocido (Error de formato o HTML)
-                else:
-                    st.warning("El formato no es estándar. Mostrando vista previa:")
-                    st.text(response.text[:1000])
-                    st.download_button("Descargar Archivo Crudo", response.content, "respuesta_desconocida.bin")
-            else:
-                status.update(label="❌ Error en la API", state="error")
-                st.error(f"Error {response.status_code}: {response.text}")
+        st.divider()
 
-        except Exception as e:
-            status.update(label="💥 Fallo de Conexión", state="error")
-            st.error(f"Error técnico: {str(e)}")
+        tab1, tab2, tab3 = st.tabs(["🌐 Vista Renderizada", "📄 Código Fuente (Raw)", "📦 JSON (Si aplica)"])
 
-st.divider()
-st.caption("Script optimizado para evitar SyntaxErrors en Streamlit Cloud.")
+        with tab1:
+            st.info("Así se vería la respuesta en un navegador:")
+            # Renderizamos el HTML directamente en Streamlit
+            components.html(r.text, height=600, scrolling=True)
+
+        with tab2:
+            st.info("Este es el código fuente exacto que llegó:")
+            st.code(r.text, language="html")
+
+        with tab3:
+            try:
+                st.json(r.json())
+            except:
+                st.warning("La respuesta no contiene un JSON válido.")
+
+    except Exception as e:
+        st.error(f"Error de conexión: {str(e)}")
+
+st.caption("Usa la pestaña 'Vista Renderizada' para ver si es una página de error o login.")
