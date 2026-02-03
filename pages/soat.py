@@ -1,54 +1,71 @@
 import streamlit as st
 import requests
-from bs4 import BeautifulSoup
+import pandas as pd
+
+def consultar_interseguro(placa):
+    # La URL interna que usa Interseguro para las consultas de SOAT
+    url = f"https://www.interseguro.pe/soat/api/v1/soat/consultar-soat-vigente/{placa}"
+    
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Referer": "https://www.interseguro.pe/soat/consulta-soat"
+    }
+
+    try:
+        response = requests.get(url, headers=headers, timeout=15)
+        
+        if response.status_code == 200:
+            data = response.json()
+            if data.get("success"):
+                return {"status": "success", "data": data.get("data")}
+            else:
+                return {"status": "error", "message": "No se encontró información para esa placa."}
+        else:
+            return {"status": "error", "message": f"Error del servidor de Interseguro ({response.status_code})"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
 
 def run():
-    st.markdown("<h1 style='text-align: center;'>📋 Reporte Vehicular Consolidado</h1>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align: center; color: gray;'>Consulta Gratuita Independiente</p>", unsafe_allow_html=True)
+    st.markdown("<h1 style='text-align: center;'>🛡️ Consulta SOAT Interseguro</h1>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center;'>Fuente: Interseguro (Oficial)</p>", unsafe_allow_html=True)
 
     placa = st.text_input("Ingrese Placa (ej: ABC123)", max_chars=6).upper()
 
-    if st.button("📊 GENERAR REPORTE DETALLADO", use_container_width=True):
+    if st.button("📊 OBTENER INFORMACIÓN DETALLADA", use_container_width=True):
         if not placa:
-            st.error("Por favor, ingrese una placa.")
+            st.warning("Por favor, ingrese una placa.")
             return
 
-        with st.spinner("Consultando múltiples fuentes oficiales..."):
-            # Simulamos el puente a SUNARP y APESEG
-            # En una fase avanzada, aquí usaríamos 'requests' para scrapear cada sitio
+        with st.spinner(f"Consultando base de datos de Interseguro para la placa {placa}..."):
+            res = consultar_interseguro(placa)
             
-            # --- DISEÑO DE INFORMACIÓN DETALLADA ---
-            tab1, tab2, tab3 = st.tabs(["🚗 Datos del Vehículo", "🛡️ Estado del SOAT", "👤 Propietario"])
-
-            with tab1:
-                st.subheader("Ficha Técnica (Fuente: SUNARP)")
-                col1, col2 = st.columns(2)
-                with col1:
-                    st.write("**Marca:** TOYOTA")
-                    st.write("**Modelo:** COROLLA")
-                    st.write("**Año Fab.:** 2022")
-                    st.write("**Color:** GRIS METÁLICO")
-                with col2:
-                    st.write("**Nro. Motor:** 1ZR-XXXXXX")
-                    st.write("**Nro. Chasis:** 9AM-XXXXXX")
-                    st.write("**Combustible:** GNV/GLP")
-                    st.write("**Asientos:** 5")
-
-            with tab2:
-                st.subheader("Certificado de Seguro (Fuente: APESEG)")
+            if res["status"] == "success":
+                info = res["data"]
+                st.balloons()
+                
+                # --- DISEÑO DE INFORMACIÓN DETALLADA ---
+                st.markdown("### 📋 Resultados de la Póliza")
+                
                 with st.container(border=True):
-                    st.write(f"**Compañía:** PACIFICO SEGUROS")
-                    st.write(f"**Certificado:** 77889922")
-                    st.write(f"**Vigencia:** 🟢 VIGENTE")
-                    st.write(f"**Desde:** 01/01/2026  **Hasta:** 01/01/2027")
-
-            with tab3:
-                st.subheader("Información de Titularidad")
-                st.info("Información protegida por Ley de Datos Personales")
-                st.write("**Propietario Actual:** RUIZ ZATOCHY, JUAN CARLOS")
-                st.write("**Sede de Registro:** LIMA")
-
-            st.success("✅ Reporte generado exitosamente sin uso de créditos.")
+                    col1, col2 = st.columns(2)
+                    
+                    with col1:
+                        st.write(f"**🔹 Aseguradora:** {info.get('companiaNombre', 'N/A')}")
+                        st.write(f"**🔹 Estado:** {info.get('estadoDescripcion', 'N/A')}")
+                        st.write(f"**🔹 Nro. Póliza:** {info.get('numeroCertificado', 'N/A')}")
+                    
+                    with col2:
+                        st.write(f"**📅 Inicio:** {info.get('fechaInicio', 'N/A')}")
+                        st.write(f"**📅 Fin:** {info.get('fechaFin', 'N/A')}")
+                        st.write(f"**🚗 Uso:** {info.get('usoDescripcion', 'N/A')}")
+                
+                # Información extra si está disponible
+                if info.get('claseDescripcion'):
+                    st.info(f"💡 **Tipo de Vehículo:** {info.get('claseDescripcion')}")
+                
+                st.success("✅ Información obtenida exitosamente y sin costo de créditos.")
+            else:
+                st.error(res["message"])
 
 if __name__ == "__main__":
     run()
