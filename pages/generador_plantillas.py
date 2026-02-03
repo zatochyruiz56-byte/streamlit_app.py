@@ -1,61 +1,76 @@
 import streamlit as st
 import requests
-import json
 
 def run():
-    st.title("🛠️ Diagnóstico de Errores - Seeker-V6")
-    st.write("Usa este módulo para ver por qué la API no responde correctamente.")
-
-    # Configuración de los parámetros según tu documentación
+    st.set_page_config(page_title="Generador de Plantillas", page_icon="📄")
+    st.title("📄 Generador de Plantillas RENIEC")
+    
+    # Configuración de API basada en documentación
     API_URL = "https://seeker-v6.com/personas/api/generadorplantillas"
     TOKEN = "sk_live_104655a1666c3ea084ecc19f6b859a5fbb843f0aaac534ad"
     
-    dni = st.text_input("DNI a consultar", max_chars=8, value="45106211")
-    tipo = st.selectbox("Tipo de plantilla", ["completa", "basica", "moderna"])
+    with st.sidebar:
+        st.header("Configuración")
+        tipo_plantilla = st.selectbox(
+            "Seleccione el Formato", 
+            ["completa", "basica", "moderna"],
+            help="Defina el nivel de detalle de la ficha"
+        )
 
-    if st.button("🔍 EJECUTAR Y VER ERROR REAL"):
+    dni = st.text_input("Ingrese el DNI a consultar", max_chars=8, placeholder="45106211")
+
+    if st.button("🚀 GENERAR FICHA"):
+        if len(dni) != 8:
+            st.warning("⚠️ El DNI debe tener exactamente 8 dígitos.")
+            return
+
         headers = {
             "Authorization": f"Bearer {TOKEN}",
             "Content-Type": "application/json"
         }
         payload = {
             "dni": dni,
-            "tipo": tipo
+            "tipo": tipo_plantilla
         }
 
         try:
-            with st.spinner("Consultando..."):
-                # Realizamos la petición
+            with st.spinner("Solicitando datos al servidor..."):
                 response = requests.post(API_URL, json=payload, headers=headers)
-            
-            # --- SECCIÓN DE DIAGNÓSTICO ---
-            st.markdown("### 🛰️ Respuesta del Servidor")
-            
-            # 1. Mostrar Código de Estado (200=OK, 401=Token, 403=Saldo, 500=Error Servidor)
-            if response.status_code == 200:
-                st.success(f"Código de Estado: {response.status_code} (OK)")
-            else:
-                st.error(f"Código de Estado: {response.status_code}")
+                
+                # Verificación de tipo de contenido
+                if "application/json" not in response.headers.get("Content-Type", ""):
+                    st.error("❌ El servidor devolvió un formato no válido (HTML).")
+                    return
 
-            # 2. Mostrar Headers (Útil para ver si es HTML o JSON)
-            with st.expander("Ver Headers de respuesta"):
-                st.write(dict(response.headers))
+                data = response.json()
 
-            # 3. Mostrar el Cuerpo de la Respuesta
-            st.markdown("#### Contenido de la Respuesta:")
+            # Procesamiento de la respuesta
+            if response.status_code == 200 and data.get("status") == "success":
+                st.success("✅ Datos recuperados con éxito")
+                
+                # --- DISEÑO DE LA PLANTILLA ---
+                info = data.get("data", {})
+                if info:
+                    st.subheader(f"Ficha RENIEC - DNI {dni}")
+                    cols = st.columns(2)
+                    
+                    # Mapeo de datos dinámico
+                    for i, (clave, valor) in enumerate(info.items()):
+                        col_idx = i % 2
+                        cols[col_idx].text_input(clave.replace("_", " ").title(), value=valor, disabled=True)
+                
+                if "creditos_restantes" in data:
+                    st.sidebar.metric("Créditos Restantes", data["creditos_restantes"])
+
+            elif data.get("message") == "Error interno":
+                st.error("❌ Error Interno del Servidor (Seeker-V6)")
+                st.info("Este error indica que el DNI podría no estar en la base de datos de plantillas o el servicio está saturado. Intenta con 'basica'.")
             
-            content_type = response.headers.get("Content-Type", "")
-            
-            if "application/json" in content_type:
-                # Si es JSON, lo mostramos bonito
-                st.json(response.json())
             else:
-                # Si NO es JSON (como en el error de Licencias), mostramos el texto crudo
-                st.warning("⚠️ El servidor no envió un JSON. Posible redirección o error de servidor.")
-                st.code(response.text, language="html")
+                st.error(f"⚠️ Error de la API: {data.get('message', 'Error desconocido')}")
 
         except Exception as e:
-            st.error(f"🔥 Error crítico en el código Python: {str(e)}")
+            st.error(f"🔥 Error de conexión: {str(e)}")
 
 if __name__ == "__main__":
     run()
