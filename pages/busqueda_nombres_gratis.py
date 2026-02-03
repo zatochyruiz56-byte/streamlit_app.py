@@ -1,37 +1,45 @@
 import streamlit as st
 import requests
 
-st.set_page_config(page_title="Debug API", layout="centered")
+st.set_page_config(page_title="Super Debugger", layout="wide")
 
-st.title("🛠️ Extractor de Datos Crudos")
-st.info("Introduce los datos abajo para ver la respuesta real de la API.")
+st.title("🚀 Super Debugger Multi-Formato")
+st.write("Probaremos enviando los datos de dos formas distintas para ver cuál funciona.")
 
-with st.form("debug_form"):
-    n = st.text_input("Nombres (ej: alex)")
-    p = st.text_input("Apellido Paterno (ej: ruiz)")
-    m = st.text_input("Apellido Materno")
-    submit = st.form_submit_button("OBTENER JSON CRUDO", use_container_width=True)
+with st.sidebar:
+    st.header("Parámetros")
+    n = st.text_input("Nombres", value="alex")
+    p = st.text_input("Paterno", value="ruiz")
+    m = st.text_input("Materno", value="")
+    token = "sk_live_104655a1666c3ea084ecc19f6b859a5fbb843f0aaac534ad"
 
-if submit:
+if st.button("EJECUTAR PRUEBAS DE FUERZA BRUTA", type="primary"):
     URL = "https://seeker-v6.com/personas/apiBasico/nombresApellidos"
-    HEADERS = {"Authorization": "Bearer sk_live_104655a1666c3ea084ecc19f6b859a5fbb843f0aaac534ad"}
-    DATA = {
-        "nombres": n, 
-        "paterno": p, 
-        "materno": m, 
-        "edadMin": "0", 
-        "edadMax": "100"
+    HEADERS = {
+        "Authorization": f"Bearer {token}",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
     }
-    
-    try:
-        with st.spinner("Consultando API..."):
-            r = requests.post(URL, headers=HEADERS, data=DATA)
-            resultado_json = r.json()
-            
-            st.markdown("### 📋 RESULTADO DE LA API:")
-            st.json(resultado_json)
-            
-            st.success("Copia el texto de arriba y pásalo por el chat.")
-            
-    except Exception as e:
-        st.error(f"Error técnico: {str(e)}")
+    PAYLOAD = {"nombres": n, "paterno": p, "materno": m, "edadMin": "0", "edadMax": "100"}
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.subheader("Prueba 1: Modo JSON")
+        try:
+            r1 = requests.post(URL, headers=HEADERS, json=PAYLOAD, timeout=10)
+            st.code(f"Status: {r1.status_code}")
+            st.json(r1.json())
+        except Exception as e:
+            st.error(f"Error en Prueba 1: {e}")
+
+    with col2:
+        st.subheader("Prueba 2: Modo Formulario")
+        try:
+            r2 = requests.post(URL, headers=HEADERS, data=PAYLOAD, timeout=10)
+            st.code(f"Status: {r2.status_code}")
+            st.json(r2.json())
+        except Exception as e:
+            st.error(f"Error en Prueba 2: {e}")
+
+    st.divider()
+    st.info("Si ambas dan 'Error Interno', es posible que el servidor de la API esté caído o los parámetros (nombres, paterno, etc) hayan cambiado de nombre.")
