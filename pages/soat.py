@@ -25,9 +25,9 @@ def run():
                 width: 1000px; 
                 height: 1200px; 
                 position: absolute; 
-                top: -385px; /* Oculta el encabezado oficial */
-                left: 50%; 
-                margin-left: -500px; /* Centra el contenido horizontalmente */
+                top: -550px; /* Oculta el encabezado oficial */
+                left: 60%; 
+                margin-left: -400px; /* Centra el contenido horizontalmente */
                 border: none;
             "
             scrolling="no">
