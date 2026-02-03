@@ -14,12 +14,11 @@ if st.button("INICIAR ESCANEO DE PARÁMETROS", type="primary"):
     TOKEN = "sk_live_104655a1666c3ea084ecc19f6b859a5fbb843f0aaac534ad"
     HEADERS = {"Authorization": f"Bearer {TOKEN}"}
 
-    # Definimos 4 variantes de parámetros comunes
     variantes = [
         {"nombres": n, "paterno": p, "materno": "", "edadMin": "0", "edadMax": "100"},
         {"nombre": n, "apellido_paterno": p, "apellido_materno": ""},
         {"nombres": n, "apellidoPaterno": p, "apellidoMaterno": ""},
-        {"nombres": n, "paterno": p} # Versión mínima
+        {"nombres": n, "paterno": p}
     ]
 
     cols = st.columns(4)
@@ -27,12 +26,9 @@ if st.button("INICIAR ESCANEO DE PARÁMETROS", type="primary"):
     for i, payload in enumerate(variantes):
         with cols[i]:
             st.info(f"Variante {i+1}")
-            st.caption(f"Enviando: {list(payload.keys())}")
             try:
-                # Probamos modo data (Formulario) que es el más común
                 r = requests.post(URL, headers=HEADERS, data=payload, timeout=5)
                 res = r.json()
-                
                 if res.get("status") == "success" or "data" in res:
                     st.success("✅ ¡FUNCIONA!")
                     st.json(res)
@@ -41,4 +37,3 @@ if st.button("INICIAR ESCANEO DE PARÁMETROS", type="primary"):
                     st.json(res)
             except Exception as e:
                 st.error("Error técnico")
-
