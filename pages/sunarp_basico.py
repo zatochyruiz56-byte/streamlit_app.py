@@ -1,140 +1,113 @@
 import streamlit as st
 import requests
 
-# 1. Configuración de Estilos (CSS) para el efecto Hover y Tarjetas
-def aplicar_estilos():
+# 1. Estilos CSS para el efecto Hover y diseño de tarjetas
+def local_css():
     st.markdown("""
         <style>
-        /* Contenedor de la cuadrícula */
-        .main-container {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 20px;
-            justify-content: center;
-        }
-        /* La Tarjeta Visual */
-        .sunarp-card {
+        /* Efecto de elevación y escala al pasar el mouse */
+        .card-container {
             background-color: #ffffff;
-            border-radius: 15px;
+            border-radius: 12px;
             padding: 20px;
-            border: 1px solid #e0e6ed;
-            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-            text-align: left;
-            height: 100%;
+            border: 1px solid #e1e8ed;
+            transition: all 0.3s ease-in-out;
+            cursor: pointer;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         }
-        /* Efecto de agrandado y sombra al pasar el mouse */
-        .sunarp-card:hover {
-            transform: translateY(-5px) scale(1.02);
-            box-shadow: 0 15px 30px rgba(0,0,0,0.1);
-            border-color: #3498db;
+        .card-container:hover {
+            transform: scale(1.03); /* Se agranda sutilmente */
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            border-color: #2e59d9;
         }
-        .card-title {
-            color: #1a202c;
-            font-size: 1.1rem;
+        .card-header-text {
+            color: #2e59d9;
             font-weight: 700;
-            margin-bottom: 10px;
-            border-bottom: 2px solid #3498db;
-            padding-bottom: 5px;
+            font-size: 1.1rem;
+            margin-bottom: 8px;
         }
-        .status-badge {
-            background-color: #d1fae5;
-            color: #065f46;
-            padding: 4px 12px;
-            border-radius: 20px;
+        .badge-activa {
+            background-color: #d4edda;
+            color: #155724;
+            padding: 3px 10px;
+            border-radius: 50px;
             font-size: 0.75rem;
-            font-weight: 600;
-            display: inline-block;
-            margin-top: 10px;
-        }
-        /* Estilo para el botón de Streamlit dentro de la tarjeta */
-        div.stButton > button {
-            border-radius: 8px;
-            font-weight: 600;
-            transition: all 0.2s;
+            font-weight: bold;
         }
         </style>
     """, unsafe_allow_html=True)
 
-# 2. Plantilla de Detalles (El Modal que se abre)
-@st.dialog("📋 DETALLES COMPLETOS DE LA PARTIDA", width="large")
-def modal_detalles(item):
-    st.markdown(f"### Partida N° {item.get('numeroPartida')}")
+# 2. Función del Modal (Pop-up de detalles)
+@st.dialog("DETALLES COMPLETOS")
+def ver_detalle(item):
+    st.markdown(f"### 📋 Partida: {item.get('numeroPartida')}")
     st.divider()
     
-    # Diseño de Ficha Identidad (Igual a tu captura)
-    c1, c2 = st.columns(2)
-    with c1:
-        st.write("👤 **NOMBRE DEL TITULAR**")
-        st.code(item.get('nombre'), language="text")
-        st.write("📍 **ZONA REGISTRAL**")
-        st.code(item.get('zona'), language="text")
-    with c2:
-        st.write("🪪 **DOCUMENTO**")
-        st.code(f"{item.get('Tipo Documento')}: {item.get('Núm. Documento')}", language="text")
-        st.write("🏢 **OFICINA**")
-        st.code(item.get('oficina'), language="text")
+    col1, col2 = st.columns(2)
+    with col1:
+        st.write("**👤 TITULAR:**")
+        st.info(item.get('nombre'))
+        st.write("**📍 ZONA:**")
+        st.text(item.get('zona'))
+    with col2:
+        st.write("**🪪 DOCUMENTO:**")
+        st.info(f"{item.get('Tipo Documento')}: {item.get('Núm. Documento')}")
+        st.write("**🏢 OFICINA:**")
+        st.text(item.get('oficina'))
     
     st.divider()
-    
-    c3, c4, c5 = st.columns(3)
-    c3.metric("ESTADO", item.get('estado'))
-    c4.metric("LIBRO", "PREDIOS" if "PREDIOS" in item.get('libro') else "VEHICULAR")
-    c5.metric("PLACA", item.get('Núm. Placa') or "N/A")
-
-    if st.button("Cerrar Detalle"):
-        st.rerun()
+    st.write(f"**📖 REGISTRO:** {item.get('registro')}")
+    st.write(f"**🚗 PLACA:** {item.get('Núm. Placa') or 'N/A'}")
 
 def run():
-    aplicar_estilos()
-    st.title("🚗 Sistema de Consultas SUNARP")
+    local_css()
+    st.title("🚗 Consulta SUNARP Básico")
     
-    # Inicializar el estado de búsqueda para que no se borre al hacer clic
-    if 'resultados_sunarp' not in st.session_state:
-        st.session_state.resultados_sunarp = None
+    # Mantenemos los resultados en memoria para que no se borren
+    if 'data_sunarp' not in st.session_state:
+        st.session_state.data_sunarp = None
 
-    with st.container():
-        dni = st.text_input("Ingrese DNI para buscar", max_chars=8)
-        btn_buscar = st.button("Consultar Registros 🔍", use_container_width=True)
+    dni = st.text_input("Ingrese DNI para buscar", max_chars=8, placeholder="Ejm: 12345678")
 
-    if btn_buscar and dni:
+    if st.button("🔍 BUSCAR REGISTROS"):
         API_URL = "https://seeker-v6.com/personas/sunarpbasicoapi"
         TOKEN = "sk_live_104655a1666c3ea084ecc19f6b859a5fbb843f0aaac534ad"
         
         try:
-            with st.spinner("Conectando con SUNARP..."):
+            with st.spinner("Consultando..."):
                 r = requests.post(API_URL, json={"dni": dni}, headers={"Authorization": f"Bearer {TOKEN}"})
                 data = r.json()
                 if data.get("status") == "success":
-                    st.session_state.resultados_sunarp = data.get("data", [])
+                    st.session_state.data_sunarp = data.get("data")
                 else:
                     st.error(data.get("message"))
         except:
-            st.error("Error de conexión.")
+            st.error("Error de conexión con el servidor.")
 
-    # Si hay resultados guardados, dibujamos las tarjetas
-    if st.session_state.resultados_sunarp:
+    # Renderizado de Tarjetas
+    if st.session_state.data_sunarp:
         st.markdown("---")
-        cols = st.columns(3) # Cuadrícula de 3
+        # Mostramos en 3 columnas
+        cols = st.columns(3)
         
-        for idx, item in enumerate(st.session_state.resultados_sunarp):
+        for idx, item in enumerate(st.session_state.data_sunarp):
             with cols[idx % 3]:
-                # Tarjeta Visual con efecto Hover
+                # Tarjeta visual con Hover
                 st.markdown(f"""
-                    <div class="sunarp-card">
-                        <div class="card-title">{item.get('nombre')[:20]}...</div>
-                        <p style='font-size: 0.85rem; color: #666;'>
+                    <div class="card-container">
+                        <div class="card-header-text">{item.get('nombre')[:18]}...</div>
+                        <p style="font-size: 0.85rem; color: #555;">
                             <b>Partida:</b> {item.get('numeroPartida')}<br>
-                            <b>Oficina:</b> {item.get('oficina')}<br>
-                            <b>Registro:</b> {item.get('registro')[:25]}...
+                            <b>Oficina:</b> {item.get('oficina')}
                         </p>
-                        <span class="status-badge">● {item.get('estado')}</span>
+                        <span class="badge-activa">● {item.get('estado')}</span>
                     </div>
                 """, unsafe_allow_html=True)
                 
-                # Botón de acción
-                if st.button("Ver detalles completos", key=f"det_{idx}", use_container_width=True):
-                    modal_detalles(item)
+                # Botón de Ver Detalles
+                if st.button("Ver detalles completos →", key=f"btn_{idx}", use_container_width=True):
+                    ver_detalle(item)
 
 if __name__ == "__main__":
     run()
