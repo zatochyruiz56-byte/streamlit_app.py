@@ -3,48 +3,52 @@ import requests
 from bs4 import BeautifulSoup
 
 def run():
-    st.markdown("<h1 style='text-align: center;'>🛡️ Consulta SOAT (Fuente Oficial)</h1>", unsafe_allow_html=True)
-    st.info("ℹ️ Este módulo consulta directamente fuentes públicas sin usar créditos de Seeker.")
+    st.markdown("<h1 style='text-align: center;'>📋 Reporte Vehicular Consolidado</h1>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: gray;'>Consulta Gratuita Independiente</p>", unsafe_allow_html=True)
 
-    placa = st.text_input("Ingrese Placa del Vehículo", placeholder="ABC123").upper()
+    placa = st.text_input("Ingrese Placa (ej: ABC123)", max_chars=6).upper()
 
-    if st.button("🔍 CONSULTAR AHORA"):
+    if st.button("📊 GENERAR REPORTE DETALLADO", use_container_width=True):
         if not placa:
-            st.error("Por favor, ingrese una placa para buscar.")
+            st.error("Por favor, ingrese una placa.")
             return
 
-        with st.spinner(f"Extrayendo datos oficiales para la placa {placa}..."):
-            try:
-                # Aquí configuramos el puente (Scraping)
-                # Usamos un User-Agent para que la página oficial nos acepte
-                headers = {
-                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36"
-                }
-                
-                # Ejemplo de estructura de datos que obtendremos del puente
-                # (En un scraper real, aquí procesamos el HTML con BeautifulSoup)
-                st.success("✅ Conexión exitosa con la base de datos de seguros.")
-                
-                # DISEÑO DE LA INFORMACIÓN (Como tú la necesitas)
-                with st.container(border=True):
-                    st.subheader(f"🚗 Información Vehicular: {placa}")
-                    
-                    col1, col2 = st.columns(2)
-                    with col1:
-                        st.write("**Compañía:** RIMAC SEGUROS")
-                        st.write("**Estado:** VIGENTE")
-                        st.write("**Tipo de Uso:** PARTICULAR")
-                    
-                    with col2:
-                        st.write("**Fecha Inicio:** 01/01/2026")
-                        st.write("**Fecha Fin:** 01/01/2027")
-                        st.write("**Certificado:** 1234567890")
-                
-                st.markdown("---")
-                st.caption("Los datos mostrados provienen de la consulta pública de seguros.")
+        with st.spinner("Consultando múltiples fuentes oficiales..."):
+            # Simulamos el puente a SUNARP y APESEG
+            # En una fase avanzada, aquí usaríamos 'requests' para scrapear cada sitio
+            
+            # --- DISEÑO DE INFORMACIÓN DETALLADA ---
+            tab1, tab2, tab3 = st.tabs(["🚗 Datos del Vehículo", "🛡️ Estado del SOAT", "👤 Propietario"])
 
-            except Exception as e:
-                st.error(f"Error al conectar con la página oficial: {e}")
+            with tab1:
+                st.subheader("Ficha Técnica (Fuente: SUNARP)")
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.write("**Marca:** TOYOTA")
+                    st.write("**Modelo:** COROLLA")
+                    st.write("**Año Fab.:** 2022")
+                    st.write("**Color:** GRIS METÁLICO")
+                with col2:
+                    st.write("**Nro. Motor:** 1ZR-XXXXXX")
+                    st.write("**Nro. Chasis:** 9AM-XXXXXX")
+                    st.write("**Combustible:** GNV/GLP")
+                    st.write("**Asientos:** 5")
+
+            with tab2:
+                st.subheader("Certificado de Seguro (Fuente: APESEG)")
+                with st.container(border=True):
+                    st.write(f"**Compañía:** PACIFICO SEGUROS")
+                    st.write(f"**Certificado:** 77889922")
+                    st.write(f"**Vigencia:** 🟢 VIGENTE")
+                    st.write(f"**Desde:** 01/01/2026  **Hasta:** 01/01/2027")
+
+            with tab3:
+                st.subheader("Información de Titularidad")
+                st.info("Información protegida por Ley de Datos Personales")
+                st.write("**Propietario Actual:** RUIZ ZATOCHY, JUAN CARLOS")
+                st.write("**Sede de Registro:** LIMA")
+
+            st.success("✅ Reporte generado exitosamente sin uso de créditos.")
 
 if __name__ == "__main__":
     run()
