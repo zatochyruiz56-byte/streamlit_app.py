@@ -1,68 +1,67 @@
 import streamlit as st
 import requests
-import json
 
 def run():
-    st.markdown("<h2 style='text-align: center;'>🌳 Árbol Genealógico con Fotos Reales</h2>", unsafe_allow_html=True)
+    st.set_page_config(layout="wide")
+    st.markdown("<h1 style='text-align: center;'>🧬 Genealogía Visual Premium</h1>", unsafe_allow_html=True)
 
-    # Configuración
     TOKEN = "sk_live_104655a1666c3ea084ecc19f6b859a5fbb843f0aaac534ad"
     
-    # --- FUNCIÓN PARA OBTENER FOTO ---
-    def get_photo_url(dni):
-        # Intentamos el servidor de imágenes de Seeker/Knowlers
-        # Si la API de árbol no la da, esta URL suele ser el estándar:
-        return f"https://api.reniec.cloud/foto/{dni}" 
+    # --- MOTOR DE IMÁGENES ---
+    # Esta función construye la URL de la imagen basándose en el DNI detectado
+    def get_photo(dni):
+        # Intentamos el servidor de caché de imágenes (ajusta la URL según tu proveedor)
+        return f"https://api.reniec.cloud/foto/{dni}"
 
-    dni_input = st.text_input("DNI a consultar", max_chars=8)
+    dni_input = st.text_input("DNI del Titular", max_chars=8)
 
-    if st.button("🔍 BUSCAR FAMILIA E IMÁGENES", use_container_width=True):
+    if st.button("🔍 GENERAR ÁRBOL CON FOTOS", use_container_width=True):
+        url = "https://seeker-v6.com/personas/arbol-familiar"
         try:
-            url = "https://seeker-v6.com/personas/arbol-familiar"
             res = requests.get(url, headers={"Authorization": f"Bearer {TOKEN}"}, params={"dni": dni_input})
-            
-            if res.status_code == 200:
-                data = res.json()
+            data = res.json()
+
+            if data.get("status") == "success":
                 info = data.get("infopersona", {})
                 arbol = data.get("arbol", [])
 
-                # --- 1. FICHA DEL TITULAR ---
-                st.subheader("🪪 Titular de la Consulta")
-                c1, c2 = st.columns([1, 3])
+                # --- SECCIÓN TITULAR ---
+                st.subheader("👤 Datos del Titular")
+                c1, c2, c3 = st.columns([1, 2, 2])
                 with c1:
-                    # Prioridad: 1. Foto de API, 2. Foto por DNI, 3. Avatar
-                    foto_titular = info.get("foto") or get_photo_url(info.get("dni"))
-                    st.image(foto_titular, use_container_width=True)
+                    st.image(get_photo(info['dni']), caption="FOTO TITULAR", width=160)
                 with c2:
-                    st.markdown(f"### {info.get('nombre_completo')}")
-                    st.write(f"**DNI:** {info.get('dni')} | **Edad:** {info.get('edad')}")
-                    st.write(f"📍 {info.get('ubicacion_completa')}")
+                    st.write(f"**Nombre:** {info['nombre_completo']}")
+                    st.write(f"**DNI:** {info['dni']}")
+                    st.write(f"**Edad:** {info['edad']} años")
+                with c3:
+                    st.write(f"**Estado Civil:** {info['estado_civil']}")
+                    st.write(f"**Dirección:** {info['direccion']}")
 
                 st.divider()
 
-                # --- 2. EL ÁRBOL CON FOTOS ---
-                st.subheader("👥 Familiares Directos e Indirectos")
+                # --- SECCIÓN ÁRBOL GENEALÓGICO ---
+                st.subheader("👥 Vínculos Familiares con Registro Fotográfico")
                 
-                # Agrupamos por tipo para ordenarlos
-                grupos = ["PADRE", "MADRE", "HERMANO", "HERMANA", "HIJO", "HIJA", "SOBRINO", "SOBRINA", "CUÑADO", "CUÑADA"]
+                # Clasificamos para mostrar en orden jerárquico
+                categorias = ["PADRE", "MADRE", "HERMANO", "HERMANA", "HIJO", "HIJA", "SOBRINO", "SOBRINA"]
                 
-                for grupo in grupos:
-                    miembros = [f for f in arbol if f['TIPO'] == grupo]
+                for cat in categorias:
+                    miembros = [m for m in arbol if cat in m['TIPO']]
                     if miembros:
-                        st.markdown(f"#### 📍 {grupo}S")
-                        # Creamos una cuadrícula de 3 columnas para las fotos de los familiares
-                        cols = st.columns(3)
-                        for idx, m in enumerate(miembros):
-                            with cols[idx % 3]:
-                                # Generamos la foto para cada familiar usando su DNI del JSON
-                                foto_fam = get_photo_url(m['DNI'])
-                                st.image(foto_fam, caption=f"{m['NOMBRES']}", width=120)
-                                st.caption(f"🆔 {m['DNI']} ({m['EDAD']} años)")
-                                st.markdown("---")
+                        st.markdown(f"#### {cat}S")
+                        # Creamos una fila de fotos para cada categoría
+                        cols = st.columns(5) 
+                        for i, m in enumerate(miembros):
+                            with cols[i % 5]:
+                                st.image(get_photo(m['DNI']), width=120)
+                                st.caption(f"**{m['NOMBRES']}**")
+                                st.caption(f"🆔 {m['DNI']}")
+                        st.markdown("---")
             else:
-                st.error("Servidor fuera de línea.")
+                st.error("DNI no encontrado o error de API.")
         except Exception as e:
-            st.error(f"Error: {e}")
+            st.error(f"Error técnico: {e}")
 
 if __name__ == "__main__":
     run()
