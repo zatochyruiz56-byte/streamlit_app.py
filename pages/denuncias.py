@@ -2,69 +2,39 @@ import streamlit as st
 import requests
 
 def run():
-    st.markdown("<h1 style='text-align: center;'>⚖️ Consulta de Denuncias</h1>", unsafe_allow_html=True)
-    st.info("Búsqueda avanzada por DNI o Placa Vehicular")
-
-    TOKEN = "sk_live_104655a1666c3ea084ecc19f6b859a5fbb843f0aaac534ad"
+    st.title("🛠️ Diagnóstico Crudo: Denuncias")
     
-    col1, col2 = st.columns([2, 1])
-    with col1:
-        search_value = st.text_input("Ingrese el dato a consultar", placeholder="DNI o Placa (ej: ABC123)")
-    with col2:
-        tipo_input = st.selectbox("Tipo de búsqueda", ["DNI", "PLACA"])
+    TOKEN = "sk_live_104655a1666c3ea084ecc19f6b859a5fbb843f0aaac534ad"
+    search_value = st.text_input("DNI o Placa para test", value="48694322")
+    tipo = st.selectbox("Tipo", ["DNI", "PLACA"])
 
-    if st.button("🔍 BUSCAR DENUNCIAS", use_container_width=True):
-        if not search_value:
-            st.warning("Por favor, ingrese un valor para buscar.")
-            return
-
-        # URL según documentación: método GET
+    if st.button("VER RESPUESTA REAL DEL SERVIDOR"):
         url = "https://seeker-v6.com/personas/apidenuncias"
         headers = {"Authorization": f"Bearer {TOKEN}"}
-        params = {
-            "searchValue": search_value,
-            "tipo": tipo_input
-        }
+        params = {"searchValue": search_value, "tipo": tipo}
 
-        with st.spinner("Consultando registros nacionales..."):
-            try:
-                # Al ser GET, usamos params en lugar de json
-                res = requests.get(url, headers=headers, params=params, timeout=30)
-                
-                if res.status_code == 200:
-                    data = res.json()
-                    
-                    if data.get("status") == "success":
-                        st.success(f"✅ Búsqueda finalizada. Créditos restantes: {data.get('creditos_restantes')}")
-                        
-                        registros = data.get("data", [])
-                        
-                        if not registros:
-                            st.info("No se encontraron denuncias registradas para este criterio.")
-                        else:
-                            # Mostramos cada denuncia en una tarjeta organizada
-                            for idx, denuncia in enumerate(registros):
-                                with st.container(border=True):
-                                    st.subheader(f"📄 Registro #{idx + 1}")
-                                    
-                                    # Creamos columnas para los detalles
-                                    c1, c2 = st.columns(2)
-                                    # Adaptamos las llaves según lo que suele devolver Seeker en este módulo
-                                    with c1:
-                                        st.write(f"**Fecha:** {denuncia.get('fecha', 'N/A')}")
-                                        st.write(f"**Delito:** {denuncia.get('delito', 'N/A')}")
-                                    with c2:
-                                        st.write(f"**Estado:** {denuncia.get('estado', 'N/A')}")
-                                        st.write(f"**Entidad:** {denuncia.get('entidad', 'N/A')}")
-                                    
-                                    st.write(f"**Detalle:** {denuncia.get('detalle', 'No especificado')}")
-                    else:
-                        st.error(f"Error de la API: {data.get('message', 'Error desconocido')}")
-                else:
-                    st.error(f"Error de conexión (Código {res.status_code})")
+        st.info(f"Enviando GET a: {url}")
+        
+        try:
+            # Al ser GET, los parámetros van en la URL
+            res = requests.get(url, headers=headers, params=params, timeout=30)
             
-            except Exception as e:
-                st.error(f"Error inesperado: {str(e)}")
+            st.metric("Código HTTP", res.status_code)
+            
+            st.subheader("Cuerpo de la respuesta:")
+            try:
+                # Si es JSON, lo mostramos bonito
+                st.json(res.json())
+            except:
+                # Si no es JSON (como el error que te salió antes), mostramos el texto puro
+                st.code(res.text)
+                
+            if res.status_code == 500:
+                st.error("🚨 El servidor de Seeker tiene un error interno (500). No es tu código.")
+            elif res.status_code == 401:
+                st.error("🔑 Error de autorización. Revisa tu Token.")
 
-if __name__ == "__main__":
-    run()
+        except Exception as e:
+            st.error(f"Fallo de conexión: {str(e)}")
+
+run()
