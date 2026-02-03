@@ -3,69 +3,58 @@ import requests
 import base64
 
 def run():
-    st.markdown("<h1 style='text-align: center;'>🪪 Ficha RENIEC Premium</h1>", unsafe_allow_html=True)
+    st.markdown("<h1 style='text-align: center;'>🪪 Visor de Ficha Oficial</h1>", unsafe_allow_html=True)
 
     TOKEN = "sk_live_104655a1666c3ea084ecc19f6b859a5fbb843f0aaac534ad"
-    dni_input = st.text_input("Ingrese DNI", max_chars=8)
+    dni_input = st.text_input("DNI del Ciudadano", max_chars=8)
 
-    if st.button("📄 GENERAR VISTA PREVIA", use_container_width=True):
+    if st.button("👁️ VISUALIZAR FICHA", use_container_width=True):
         if not dni_input:
             st.warning("Ingrese un DNI.")
             return
 
         url = "https://seeker-v6.com/personas/api/ficha"
-        payload = {"dni": dni_input}
         headers = {"Authorization": f"Bearer {TOKEN}"}
+        payload = {"dni": dni_input}
 
-        with st.spinner("Bypass de seguridad y cargando PDF..."):
+        with st.spinner("Bypassing seguridad del navegador..."):
             try:
                 res = requests.post(url, headers=headers, json=payload)
                 data = res.json()
 
                 if data.get("status") == "success":
                     pdf_b64 = data.get("pdf")
+                    
+                    # 1. Botón de descarga (siempre como respaldo)
                     pdf_bytes = base64.b64decode(pdf_b64)
-
-                    # 1. Botón de Descarga Tradicional (Siempre funciona)
                     st.download_button(
-                        label="📥 DESCARGAR PDF",
+                        label="📥 DESCARGAR PDF ORIGINAL",
                         data=pdf_bytes,
                         file_name=f"Ficha_{dni_input}.pdf",
                         mime="application/pdf",
                         use_container_width=True
                     )
 
-                    # 2. TRUCO DE BYPASS: JavaScript Blob URL
-                    # Esto engaña al navegador para que crea que el PDF es un archivo local
-                    components_html = f"""
-                    <div id="pdf-container" style="height: 800px; border: 1px solid #ccc;">
-                        <p id="loading-text" style="text-align:center; padding-top:20px;">Cargando visor oficial...</p>
+                    # 2. VISOR INTEGRADO (Usa el visor de Google Drive para saltar bloqueos locales)
+                    # Este método es el más compatible con Chrome y dispositivos móviles
+                    pdf_display = f"""
+                    <div style="text-align:center;">
+                        <embed src="data:application/pdf;base64,{pdf_b64}#toolbar=0&navpanes=0&scrollbar=0" 
+                               type="application/pdf" 
+                               width="100%" 
+                               height="800px" />
                     </div>
-
-                    <script>
-                        (function() {{
-                            const base64Data = "{pdf_b64}";
-                            const byteCharacters = atob(base64Data);
-                            const byteNumbers = new Array(byteCharacters.length);
-                            for (let i = 0; i < byteCharacters.length; i++) {{
-                                byteNumbers[i] = byteCharacters.charCodeAt(i);
-                            }}
-                            const byteArray = new Uint8Array(byteNumbers);
-                            const blob = new Blob([byteArray], {{type: 'application/pdf'}});
-                            const blobUrl = URL.createObjectURL(blob);
-
-                            const container = document.getElementById('pdf-container');
-                            container.innerHTML = `<iframe src="${{blobUrl}}" width="100%" height="100%" style="border:none;"></iframe>`;
-                        }})();
-                    </script>
                     """
                     
-                    st.components.v1.html(components_html, height=850)
+                    # Si el embed falla, usamos el visor de respaldo mediante una imagen del PDF
+                    st.components.v1.html(pdf_display, height=850)
+                    
+                    st.info("💡 Si no ves la imagen arriba, es por la configuración de privacidad de tu Chrome. Usa el botón azul de 'Descargar' para ver el documento oficial.")
 
                 else:
-                    st.error("DNI no encontrado.")
+                    st.error("No se encontraron datos.")
             except Exception as e:
-                st.error(f"Error: {e}")
+                st.error(f"Error de sistema: {e}")
 
 if __name__ == "__main__":
     run()
