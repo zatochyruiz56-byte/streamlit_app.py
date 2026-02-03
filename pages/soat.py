@@ -25,8 +25,8 @@ def run():
                 height: 1200px; 
                 position: absolute; 
                 top: -500px; /* Sube la web para ocultar el encabezado azul */
-                left: 50%; 
-                margin-left: -370px; /* Centra el contenido horizontalmente */
+                left: 60%; 
+                margin-left: -360px; /* Centra el contenido horizontalmente */
                 border: none;
             "
             scrolling="no">
