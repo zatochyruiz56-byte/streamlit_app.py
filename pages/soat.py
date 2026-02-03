@@ -5,8 +5,8 @@ def run():
     st.markdown("<h3 style='text-align: center; color: #1E3A8A;'>🛡️ Buscador SOAT</h3>", unsafe_allow_html=True)
 
     # --- AJUSTE QUIRÚRGICO DEL CORTE ---
-    # margin-top: -460px -> Sube la página para esconder el logo y menú.
-    # margin-left: -320px -> Mueve la página a la izquierda para centrar el cuadro.
+    # margin-top: -400px -> Sube la página para esconder el logo y menú.
+    # margin-left: -280px -> Mueve la página a la izquierda para centrar el cuadro.
     # transform: scale(1.1) -> Hace un pequeño zoom para que sea más fácil de tocar.
     
     recorte_perfecto = """
