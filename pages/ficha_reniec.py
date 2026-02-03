@@ -6,7 +6,7 @@ def run():
     st.markdown("<h1 style='text-align: center;'>🪪 Ficha RENIEC Oficial</h1>", unsafe_allow_html=True)
 
     TOKEN = "sk_live_104655a1666c3ea084ecc19f6b859a5fbb843f0aaac534ad"
-    dni_input = st.text_input("Ingrese DNI para obtener PDF", max_chars=8)
+    dni_input = st.text_input("Ingrese DNI para obtener ficha", max_chars=8)
 
     if st.button("📄 OBTENER FICHA ORIGINAL", use_container_width=True):
         if not dni_input:
@@ -17,43 +17,49 @@ def run():
         headers = {"Authorization": f"Bearer {TOKEN}"}
         payload = {"dni": dni_input}
 
-        with st.spinner("Descargando y procesando documento..."):
+        with st.spinner("Procesando PDF oficial..."):
             try:
-                # Usamos POST como indica tu documentación
                 res = requests.post(url, headers=headers, json=payload)
                 
                 if res.status_code == 200:
                     data = res.json()
                     
                     if data.get("status") == "success":
-                        # Extraemos la cadena base64 del PDF
                         pdf_b64 = data.get("pdf")
                         
                         if pdf_b64:
-                            # 1. Preparar la descarga del archivo real
+                            # 1. Decodificamos a bytes para la descarga
                             pdf_bytes = base64.b64decode(pdf_b64)
                             
-                            st.success("✅ Ficha recuperada con éxito")
+                            st.success("✅ Ficha cargada correctamente")
 
-                            # Botón de descarga para PDF Real
+                            # Botón de Descarga (Este ya te funcionaba bien)
                             st.download_button(
-                                label="📥 DESCARGAR FICHA EN PDF",
+                                label="📥 DESCARGAR ARCHIVO PDF",
                                 data=pdf_bytes,
                                 file_name=f"Ficha_RENIEC_{dni_input}.pdf",
                                 mime="application/pdf",
                                 use_container_width=True
                             )
 
-                            # 2. Visualización previa en la App
-                            # Creamos un iframe para ver el PDF sin salir de Streamlit
-                            pdf_display = f'<iframe src="data:application/pdf;base64,{pdf_b64}" width="100%" height="800" type="application/pdf"></iframe>'
+                            # 2. SOLUCIÓN AL ERROR DE BLOQUEO:
+                            # En lugar de un iframe, usamos un visor de PDF embebido 
+                            # con una técnica de 'object data' que es más amigable con Chrome
+                            pdf_display = f"""
+                                <object data="data:application/pdf;base64,{pdf_b64}" width="100%" height="800" type="application/pdf">
+                                    <div style="padding:20px; text-align:center; background:#f8d7da; color:#721c24; border-radius:10px;">
+                                        ⚠️ Tu navegador no permite la vista previa automática. 
+                                        <br>Usa el botón de arriba para descargar y ver el documento.
+                                    </div>
+                                </object>
+                            """
                             st.markdown(pdf_display, unsafe_allow_html=True)
                         else:
-                            st.error("El servidor no incluyó el archivo PDF en la respuesta.")
+                            st.error("La respuesta no contiene un archivo PDF.")
                     else:
-                        st.error(f"Error: {data.get('message', 'No se pudo generar la ficha')}")
+                        st.error(f"Error: {data.get('message', 'DNI no encontrado')}")
                 else:
-                    st.error(f"Error del servidor: {res.status_code}")
+                    st.error("Error de conexión con el servidor de RENIEC.")
                     
             except Exception as e:
                 st.error(f"Error técnico: {e}")
