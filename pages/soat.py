@@ -12,7 +12,7 @@ def run():
     recorte_perfecto = """
     <div style="
         width: 100%; 
-        height: 280px; 
+        height: 250px; 
         overflow: hidden; 
         border: 2px solid #0047ab; 
         border-radius: 15px; 
@@ -23,7 +23,7 @@ def run():
             src="https://www.apeseg.org.pe/consultas-soat/" 
             style="
                 width: 1200px; 
-                height: 1500px; 
+                height: 1400px; 
                 position: absolute; 
                 top: -465px; 
                 left: 50%; 
