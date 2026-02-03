@@ -12,7 +12,7 @@ def run():
     recorte_perfecto = """
     <div style="
         width: 100%; 
-        height: 380px; 
+        height: 350px; 
         overflow: hidden; 
         border: 2px solid #0047ab; 
         border-radius: 15px; 
