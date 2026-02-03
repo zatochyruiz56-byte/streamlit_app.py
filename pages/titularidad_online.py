@@ -3,74 +3,66 @@ import requests
 import json
 
 def run():
-    # Estilos para una terminal de datos moderna
-    st.markdown("""
-        <style>
-        .stCodeBlock {
-            background-color: #0e1117 !important;
-            border: 1px solid #30363d !important;
-            border-radius: 12px !important;
-        }
-        .json-label {
-            background-color: #1f2937;
-            color: #60a5fa;
-            padding: 5px 12px;
-            border-radius: 8px;
-            font-size: 0.8rem;
-            font-weight: bold;
-            display: inline-block;
-            margin-bottom: 10px;
-        }
-        </style>
-    """, unsafe_allow_html=True)
-
-    st.title("📲 Titularidad Online (API Raw)")
+    st.title("📲 Titularidad Online - Diagnóstico Total")
     st.markdown("---")
 
-    # Contenedor de búsqueda
-    with st.container():
-        dni = st.text_input("Ingrese DNI", max_chars=8, placeholder="Ejm: 12345678")
+    # Parámetros de conexión
+    API_URL = "https://seeker-v6.com/telefonos/titularidad"
+    TOKEN = "sk_live_104655a1666c3ea084ecc19f6b859a5fbb843f0aaac534ad"
+
+    # Input con placeholder genérico
+    dni = st.text_input("Ingrese DNI para consulta", max_chars=8, placeholder="Ejm: 12345678")
+
+    if st.button("🚀 EJECUTAR Y CAPTURAR RESPUESTA"):
+        if not dni:
+            st.warning("Escriba un DNI primero.")
+            return
+
+        headers = {
+            "Authorization": f"Bearer {TOKEN}",
+            "Content-Type": "application/json"
+        }
         
-        if st.button("🚀 OBTENER JSON DE API", use_container_width=True):
-            if len(dni) != 8:
-                st.warning("⚠️ Formato de DNI inválido.")
-                return
+        # Probamos con 'doc' como pediste
+        payload = {"doc": dni}
 
-            API_URL = "https://seeker-v6.com/telefonos/titularidad"
-            TOKEN = "sk_live_104655a1666c3ea084ecc19f6b859a5fbb843f0aaac534ad"
+        try:
+            with st.spinner("Llamando a la API..."):
+                response = requests.post(API_URL, json=payload, headers=headers)
             
-            try:
-                with st.spinner("Solicitando respuesta cruda al servidor..."):
-                    # Petición según tu estructura
-                    response = requests.post(
-                        API_URL, 
-                        headers={"Authorization": f"Bearer {TOKEN}"}, 
-                        json={"doc": dni}
-                    )
-                    
-                    # Verificación de respuesta
-                    if response.status_code == 200:
-                        try:
-                            raw_json = response.json()
-                            
-                            st.markdown("<div class='json-label'>{ } JSON RESPONSE</div>", unsafe_allow_html=True)
-                            
-                            # Mostramos la data cruda formateada
-                            st.code(json.dumps(raw_json, indent=4, ensure_ascii=False), language="json")
-                            
-                            # Mostrar estado de créditos si existe en la raíz del JSON
-                            if "creditos_restantes" in raw_json:
-                                st.sidebar.metric("Saldo actual", raw_json["creditos_restantes"])
-                                
-                        except ValueError:
-                            st.error("❌ El servidor no respondió con un JSON válido.")
-                            st.code(response.text, language="html")
-                    else:
-                        st.error(f"❌ Error del Servidor: Código {response.status_code}")
-                        st.code(response.text)
+            # --- ZONA DE ANÁLISIS ---
+            st.subheader("🛰️ Informe del Servidor")
+            
+            # 1. Código de Estado HTTP
+            status_code = response.status_code
+            if status_code == 200:
+                st.success(f"Código HTTP: {status_code} (Conexión Exitosa)")
+            else:
+                st.error(f"Código HTTP: {status_code} (El servidor rechazó la petición)")
 
-            except Exception as e:
-                st.error(f"🔥 Error de conexión: {str(e)}")
+            # 2. Tipo de Contenido (Aquí descubrimos el error)
+            content_type = response.headers.get("Content-Type", "")
+            st.write(f"**Tipo de archivo recibido:** `{content_type}`")
+
+            st.markdown("---")
+
+            # 3. Intento de mostrar JSON o mostrar Texto Crudo
+            if "application/json" in content_type:
+                try:
+                    data = response.json()
+                    st.markdown("### ✅ JSON Recibido:")
+                    st.json(data)
+                except Exception as json_err:
+                    st.error("El encabezado dice JSON pero el contenido no lo es.")
+                    st.code(response.text)
+            else:
+                st.warning("⚠️ El servidor NO envió un JSON. Envió una página web o un error de texto.")
+                st.markdown("### 📄 Contenido de la respuesta (Raw Text):")
+                # Mostramos el HTML/Texto crudo para ver el error real
+                st.code(response.text, language="html")
+
+        except Exception as e:
+            st.error(f"🔥 Error de conexión (Python): {str(e)}")
 
 if __name__ == "__main__":
     run()
