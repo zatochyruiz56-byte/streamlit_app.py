@@ -2,3 +2,6 @@ streamlit
 requests
 pdf2image
 Pillow
+import streamlit as st
+requests
+beautifulsoup4
