@@ -3,3 +3,5 @@ requests
 pdf2image
 Pillow
 beautifulsoup4
+firebase-admin
+streamlit
