@@ -4,14 +4,14 @@ import streamlit.components.v1 as components
 def run():
     st.markdown("<h3 style='text-align: center;'>🪪 Consulta de Licencias de Conducir (MTC)</h3>", unsafe_allow_html=True)
     
-    st.warning("⚠️ Resuelva el captcha de imágenes dentro del recuadro para ver los resultados.")
+    st.warning("⚠️ Resuelva el captcha 'No soy un robot' dentro del recuadro.")
 
-    # --- VISOR CON RECORTE AGRESIVO ---
-    # Hemos subido el valor de 'top' de -280px a -550px para esconder todo lo superior
+    # --- VISOR CON CORTE PARA QUEDAR EN EL FORMULARIO ---
+    # Usamos -520px para saltar la cabecera y centrar el cuadro de DNI
     html_mtc = """
     <div style="
         width: 100%; 
-        height: 480px;      /* Reducimos la altura del visor para que no se asome lo de abajo */
+        height: 480px;      /* Altura ajustada para no mostrar servicios inferiores */
         overflow: hidden; 
         border: 2px solid #B91C1C; 
         border-radius: 12px; 
@@ -21,18 +21,18 @@ def run():
         <iframe src="https://licencias.mtc.gob.pe/#/index" 
             style="
                 width: 1000px; 
-                height: 2000px; 
+                height: 1500px; 
                 position: absolute; 
-                top: -550px;       /* <--- ESTO SUBE EL FORMULARIO AL TOPE */
+                top: -520px;       /* <--- SUBE HASTA EL TÍTULO 'CONSULTA DE LICENCIAS' */
                 left: 50%; 
-                margin-left: -500px; /* Mantiene el formulario centrado */
+                margin-left: -500px; /* Centra el formulario horizontalmente */
                 border: none;"
             scrolling="no">
         </iframe>
     </div>
     """
     
-    components.html(html_mtc, height=520)
+    components.html(html_mtc, height=500)
 
 if __name__ == "__main__":
     run()
