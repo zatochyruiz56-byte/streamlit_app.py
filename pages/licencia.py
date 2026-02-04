@@ -6,11 +6,12 @@ def run():
     
     st.warning("⚠️ Al marcar 'No soy un robot', resuelva el captcha de imágenes dentro del recuadro.")
 
-    # --- VISOR CON RECORTE SUPERIOR AJUSTADO ---
+    # --- VISOR CON RECORTE QUIRÚRGICO ---
+    # Ajustamos top para subir el formulario y margin-left para centrarlo
     html_mtc = """
     <div style="
         width: 100%; 
-        height: 550px; 
+        height: 520px; 
         overflow: hidden; 
         border: 2px solid #B91C1C; 
         border-radius: 12px; 
@@ -19,19 +20,19 @@ def run():
         
         <iframe src="https://licencias.mtc.gob.pe/#/index" 
             style="
-                width: 600px; 
+                width: 1000px; 
                 height: 1500px; 
                 position: absolute; 
-                top: -1000px;       /* SUBIMOS MÁS EL CONTENIDO (Antes -120px) */
-                left: 20%; 
-                margin-left: -500px; /* Centra el formulario de DNI */
+                top: -280px;       /* SUBIMOS EL CONTENIDO para mostrar solo el formulario */
+                left: 50%; 
+                margin-left: -500px; /* CENTRADO EXACTO del cuadro de DNI */
                 border: none;"
             scrolling="no">
         </iframe>
     </div>
     """
     
-    components.html(html_mtc, height=570)
+    components.html(html_mtc, height=550)
 
 if __name__ == "__main__":
     run()
