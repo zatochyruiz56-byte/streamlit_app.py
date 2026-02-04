@@ -2,35 +2,34 @@ import streamlit as st
 import streamlit.components.v1 as components
 
 def run():
-    # Título de tu App
-    st.markdown("<h1 style='text-align: center; color: #000000;'>⚡ ZTCHY PRO: Panel de Control</h1>", unsafe_allow_html=True)
+    st.markdown("<h1 style='text-align: center; color: #000000;'>⚡ ZTCHY PRO SYSTEM</h1>", unsafe_allow_html=True)
 
     # --- CONTENEDOR DEL DISFRAZ ---
     html_ztchy_pro = """
     <div style="
         width: 100%; 
-        height: 480px; 
+        height: 500px; 
         overflow: hidden; 
-        border: 3px solid #000000; 
-        border-radius: 10px; 
+        border: 4px solid #000000; 
+        border-radius: 12px; 
         position: relative; 
-        background: #000000;"> <div style="
+        background: #0d1117;"> <div style="
             position: absolute; 
-            top: 55px; 
+            top: 98px; /* Ajustado para caer justo sobre el título original */
             left: 50%; 
             transform: translateX(-50%);
-            width: 300px; 
-            height: 50px; 
-            background: #ffffff; 
-            z-index: 20; 
+            width: 250px; 
+            height: 45px; 
+            background: #ffffff; /* Color del fondo del formulario para camuflaje */
+            z-index: 100; 
             display: flex; 
             align-items: center; 
             justify-content: center;
-            font-family: Arial, sans-serif;
-            font-weight: bold;
-            font-size: 24px;
-            color: #1E3A8A; 
-            border-radius: 5px;">
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-weight: 900;
+            font-size: 26px;
+            color: #1E3A8A; /* Azul Ztchy */
+            letter-spacing: 1px;">
             ZTCHY PRO
         </div>
 
@@ -40,23 +39,22 @@ def run():
                 width: 1000px; 
                 height: 1500px; 
                 position: absolute; 
-                top: -560px; /* Tus coordenadas exactas */
-                left: 60%;  /* Tus coordenadas exactas */
+                top: -560px; /* Tus coordenadas de recorte exactas */
+                left: 60%; 
                 margin-left: -400px; 
                 border: none;
-                /* Filtro para convertir morados en azules oscuros y aumentar contraste con negro */
-                filter: hue-rotate(240deg) brightness(0.9) contrast(120%) saturate(140%);
+                /* Filtro: Convierte verdes/morados en azul profundo y sombras negras */
+                filter: hue-rotate(220deg) brightness(0.8) contrast(130%) saturate(150%) invert(5%) grayscale(20%);
             "
             scrolling="no">
         </iframe>
     </div>
     """
     
-    st.markdown("### 🔍 Validación de Seguridad")
-    components.html(html_ztchy_pro, height=500)
+    st.markdown("### 🔍 Panel de Validación Segura")
+    components.html(html_ztchy_pro, height=530)
     
-    # Pie de página personalizado
-    st.caption("🛡️ Pasarela Segura Ztchy Pro - Todos los derechos reservados 2026")
+    st.caption("🔒 Acceso restringido - Pasarela de datos protegida por Ztchy Pro 2026")
 
 if __name__ == "__main__":
     run()
