@@ -24,7 +24,7 @@ def run():
                 left: 50%;      /* Centramos el punto de anclaje */
                 margin-left: -600px; /* Empujamos 800px a la izquierda para esconder el borde izquierdo real */
                 border: none;"
-                transform: scale(1.2); /* <--- AQUÍ HACES EL ZOOM */
+                transform: scale(1.5); /* <--- AQUÍ HACES EL ZOOM */
         transform-origin: top center; /* <--- ESTO MANTIENE EL ZOOM CENTRADO */
     "
             scrolling="no">
