@@ -15,7 +15,7 @@ def run():
                 position: absolute; 
                 top: -560px; /* Mantenemos tu recorte superior */
                 left: 10%;    /* Bajamos de 60% a 45% para moverlo a la izquierda */
-                margin-left: -800px; /* Ajuste para centrar el formulario tras el recorte */
+                margin-left: -200px; /* Ajuste para centrar el formulario tras el recorte */
                 border: none;"
             scrolling="no">
         </iframe>
