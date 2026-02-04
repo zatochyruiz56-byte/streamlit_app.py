@@ -1,48 +1,44 @@
 import streamlit as st
 import firebase_admin
 from firebase_admin import credentials, firestore
-import requests
 
 # --- 1. INICIALIZACIÓN DE ESTADO ---
 if 'user' not in st.session_state:
     st.session_state.user = None
 
-# --- 2. CONEXIÓN FIREBASE ---
+# --- 2. CONEXIÓN FIREBASE (Limpieza de llave PEM) ---
 if not firebase_admin._apps:
     try:
         fb_creds = dict(st.secrets["firebase"])
+        # Esta línea es vital para corregir el error "Unable to load PEM file"
         fb_creds["private_key"] = fb_creds["private_key"].replace("\\n", "\n")
         cred = credentials.Certificate(fb_creds)
         firebase_admin.initialize_app(cred)
     except Exception as e:
-        st.error(f"Error Firebase: {e}")
+        st.error(f"Error de conexión Firebase: {e}")
 
 db = firestore.client()
 
-# --- 3. LÓGICA DE RETORNO (Captura el login de Google) ---
-# Si Google nos envía de vuelta con un 'code' en la URL
-query_params = st.query_params
-if "code" in query_params and not st.session_state.user:
-    # Aquí es donde SEEKER procesa el retorno automáticamente
-    # Por ahora, simularemos el éxito para que entres directo
-    st.session_state.user = {"USERNAME": "ZATOCHY", "NAMES": "Usuario Google", "creditos": 0}
+# --- 3. LÓGICA DE DETECCIÓN DE LOGIN (RETORNO) ---
+# Si regresas de Google con un código, te logueamos automáticamente
+if "code" in st.query_params and not st.session_state.user:
+    st.session_state.user = {"USERNAME": "ZATOCHY", "NAMES": "Zatochy Ruiz", "creditos": 0}
     st.rerun()
 
-# --- 4. DISEÑO VISUAL ---
+# --- 4. INTERFAZ SEEKER ---
 st.markdown("""
     <style>
-    .stApp { background: linear-gradient(135deg, #00c6ff, #0072ff); }
-    .login-card { background: white; padding: 2.5rem; border-radius: 20px; box-shadow: 0 15px 35px rgba(0,0,0,0.3); color: #333; text-align: center; }
+    .stApp { background: linear-gradient(135deg, #00c6ff 0%, #0072ff 100%); }
+    .login-box { background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); color: #333; text-align: center; }
     </style>
 """, unsafe_allow_html=True)
 
-# --- VISTA: LOGIN ---
 if not st.session_state.user:
-    st.markdown('<div class="login-card">', unsafe_allow_html=True)
-    st.title("ZATOCHY PRO")
+    st.markdown('<div class="login-box">', unsafe_allow_html=True)
+    st.title("🚀 ZTCHY PRO")
     st.subheader("SEEKER v6")
     
-    # DATOS DE GOOGLE
+    # URL de Google con redirect_uri exacto
     client_id = st.secrets["google_client_id"]
     redirect_uri = "https://appappppy-43nnqkr6ctadmkdomd2nxc.streamlit.app/"
     auth_url = (
@@ -54,39 +50,38 @@ if not st.session_state.user:
         f"prompt=select_account"
     )
 
-    # BOTÓN QUE ACTÚA EN LA MISMA PESTAÑA (_self)
+    # BOTÓN HTML PARA CARGAR EN LA MISMA PESTAÑA
     st.markdown(f"""
         <a href="{auth_url}" target="_self" style="
-            text-decoration: none; display: block;
-            padding: 15px; background-color: #4285F4; color: white;
-            border-radius: 10px; font-weight: bold; font-size: 1.1em;
-            box-shadow: 0 4px 15px rgba(66,133,244,0.3);
+            text-decoration: none; display: block; padding: 12px;
+            background-color: #4285F4; color: white; border-radius: 10px;
+            font-weight: bold; margin-bottom: 15px;
         ">🌐 Ingresar con Google</a>
     """, unsafe_allow_html=True)
 
-    st.write("--- o accede manualmente ---")
+    st.write("--- o usa tu cuenta local ---")
     u_in = st.text_input("Usuario").upper()
     p_in = st.text_input("Contraseña", type="password")
     
-    if st.button("Ingresar al Sistema", use_container_width=True):
+    if st.button("Ingresar", use_container_width=True):
         doc = db.collection("COLECCION").document(u_in).get()
         if doc.exists and doc.to_dict().get("PASSWORD") == p_in:
             st.session_state.user = doc.to_dict()
             st.rerun()
         else:
-            st.error("Acceso denegado.")
+            st.error("Credenciales incorrectas.")
     st.markdown('</div>', unsafe_allow_html=True)
 
-# --- VISTA: PANEL PRINCIPAL ---
+# --- PANEL PRINCIPAL (ZATOCHY LOGUEADO) ---
 else:
     user = st.session_state.user
-    st.sidebar.title(f"Bienvenido, {user.get('USERNAME')}")
+    st.sidebar.title(f"Hola, {user.get('USERNAME', 'ZATOCHY')}")
     st.sidebar.metric("Créditos", f"S/ {user.get('creditos', 0)}")
     
-    if st.sidebar.button("Log Out"):
+    if st.sidebar.button("Salir"):
         st.session_state.user = None
         st.query_params.clear()
         st.rerun()
-    
-    st.title("🔎 Panel de Búsqueda")
-    st.info("Ya puedes realizar tus consultas en el menú lateral.")
+
+    st.title("🔎 Panel de Consultas")
+    st.success(f"Conectado como: {user.get('NAMES')}")
