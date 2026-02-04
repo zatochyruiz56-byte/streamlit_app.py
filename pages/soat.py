@@ -4,12 +4,12 @@ import streamlit.components.v1 as components
 def run():
     st.markdown("<h2 style='text-align: center;'>🛡️ Consulta de Historial SOAT</h2>", unsafe_allow_html=True)
 
-    # Inicializar el estado si no existe
+    # 1. Lógica de Control de Estado
     if 'mostrar_plantilla' not in st.session_state:
         st.session_state['mostrar_plantilla'] = False
 
-    # --- 1. VISOR APESEG (Tus medidas exactas) ---
-    # Este visor siempre cargará la página de inicio de APESEG al resetearse
+    # --- 2. EL VISOR (Tus medidas exactas) ---
+    # Al recargar, el iframe vuelve siempre a la URL base de APESEG
     html_apeseg = """
     <div style="width: 100%; height: 500px; overflow: hidden; border: 2px solid #1E3A8A; border-radius: 12px; position: relative; background: white;">
         <iframe src="https://www.apeseg.org.pe/consultas-soat/" 
@@ -25,31 +25,33 @@ def run():
         </iframe>
     </div>
     """
-    
-    # El visor se muestra siempre para permitir nuevas consultas
     components.html(html_apeseg, height=520)
 
-    # --- 2. BOTONES DE CONTROL ---
+    # --- 3. BOTONES CON REACCIÓN INSTANTÁNEA ---
     col1, col2 = st.columns(2)
     
     with col1:
-        # Pasa los datos visualizados a tu formato ZTCHY
+        # Activa la visualización de tu plantilla
         if st.button("🚀 PASAR A PLANTILLA ZTCHY", use_container_width=True):
             st.session_state['mostrar_plantilla'] = True
+            st.rerun() # Forzamos refresco para mostrar el cambio abajo
             
     with col2:
-        # Este botón limpia todo y recarga la aplicación desde el inicio
+        # LIMPIEZA TOTAL: Borra la plantilla y reinicia el iframe
         if st.button("🔄 Realizar otra búsqueda", use_container_width=True):
             st.session_state['mostrar_plantilla'] = False
-            st.rerun() # Fuerza el regreso al estado inicial y recarga el iframe
+            # Borramos cualquier rastro de datos en la sesión para que la plantilla desaparezca
+            for key in st.session_state.keys():
+                st.session_state[key] = False
+            st.rerun() 
 
-    # --- 3. PLANTILLA ZTCHY PRO ---
-    if st.session_state['mostrar_plantilla']:
+    # --- 4. PLANTILLA ZTCHY (Solo aparece si se solicita) ---
+    if st.session_state.get('mostrar_plantilla'):
         st.markdown("---")
         st.markdown("### 📋 FICHA TÉCNICA CONSOLIDADA (ZTCHY PRO)")
         
+        # Esta sección desaparece por completo al dar clic en 'Realizar otra búsqueda'
         with st.container(border=True):
-            # Formato limpio basado en tus capturas
             c1, c2 = st.columns(2)
             with c1:
                 st.write("**Compañía:** INTERSEGURO")
