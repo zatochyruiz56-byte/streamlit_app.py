@@ -2,72 +2,86 @@ import streamlit as st
 import requests
 
 def run():
-    # Configuración de estilo para imitar el portal del MTC
+    # Estilos CSS para calcar la web del MTC
     st.markdown("""
         <style>
-        .mtc-header { color: #333; font-family: sans-serif; font-weight: bold; margin-bottom: 20px; }
-        .label-gray { color: #666; font-size: 0.8rem; margin-bottom: 2px; }
-        .data-value { color: #333; font-size: 1rem; border-bottom: 1px solid #ccc; padding-bottom: 5px; margin-bottom: 15px; text-transform: uppercase; }
-        .status-vigente { color: #28a745; font-weight: bold; }
-        .tab-box { border-bottom: 2px solid #d9534f; color: #d9534f; font-weight: bold; padding: 10px; display: flex; align-items: center; gap: 8px; }
+        .mtc-container { font-family: 'Arial', sans-serif; color: #333; }
+        .mtc-title { font-size: 24px; text-align: center; margin-bottom: 30px; color: #333; }
+        .section-header { font-size: 18px; font-weight: bold; margin-bottom: 15px; border-bottom: none; }
+        .label { color: #888; font-size: 12px; margin-bottom: 0px; }
+        .value { font-size: 15px; border-bottom: 1px solid #ccc; padding-bottom: 2px; margin-bottom: 15px; min-height: 22px; text-transform: uppercase; }
+        .tab-container { display: flex; border-bottom: 1px solid #ddd; margin-bottom: 20px; }
+        .tab { padding: 10px 20px; color: #777; font-weight: bold; display: flex; align-items: center; gap: 5px; cursor: default; }
+        .tab.active { color: #d32f2f; border-bottom: 3px solid #d32f2f; }
+        .vigente { color: #2e7d32; font-weight: bold; }
+        .plus-button { 
+            position: fixed; bottom: 30px; right: 30px; background-color: #b71c1c; 
+            color: white; border-radius: 50%; width: 50px; height: 50px; 
+            display: flex; align-items: center; justify-content: center; font-size: 30px; 
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3); z-index: 1000;
+        }
         </style>
     """, unsafe_allow_html=True)
 
-    st.title("Consulta de Licencia de Conducir")
+    st.markdown("<div class='mtc-title'>Consulta de Licencia de Conducir</div>", unsafe_allow_html=True)
 
+    # Lógica de API (Factiliza)
     TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI0MDMwNSIsImh0dHA6Ly9zY2hlbWFzLm1pY3Jvc29mdC5jb20vd3MvMjAwOC8wNi9pZGVudGl0eS9jbGFpbXMvcm9sZSI6ImNvbnN1bHRvciJ9.Gsokm2AIDVCMdG5etymgkljwqXoCrb7b24c75H_VMr0"
     headers = {"Authorization": f"Bearer {TOKEN}"}
-    dni = st.text_input("Ingrese DNI:", max_chars=8)
+    
+    dni = st.text_input("Ingrese DNI para buscar:")
 
-    if st.button("Consultar"):
+    if dni:
         url = f"https://api.factiliza.com/v1/licencia/info/{dni}"
-        response = requests.get(url, headers=headers)
+        res = requests.get(url, headers=headers).json()
         
-        if response.status_code == 200:
-            res = response.json()
-            if res.get("status") == 200:
-                data = res["data"]
-                lic = data["licencia"] # Extraemos objeto licencia
+        if res.get("status") == 200:
+            d = res["data"]
+            l = d["licencia"]
+            
+            # Procesar nombre para separar apellidos de nombres
+            partes = d.get('nombre_completo', '').split()
+            apellidos = " ".join(partes[-2:]) if len(partes) >= 2 else ""
+            nombres = " ".join(partes[:-2]) if len(partes) >= 2 else d.get('nombre_completo')
 
-                # --- SECCIÓN: DATOS DEL CONDUCTOR ---
-                st.markdown("<h4 class='mtc-header'>Datos del conductor</h4>", unsafe_allow_html=True)
-                
-                col1, col2, col_img = st.columns([2, 2, 1])
-                with col1:
-                    st.markdown(f"<p class='label-gray'>Apellidos</p><p class='data-value'>{data.get('nombre_completo', '').split()[-2:]}</p>", unsafe_allow_html=True)
-                    st.markdown(f"<p class='label-gray'>Tipo de documento</p><p class='data-value'>DNI</p>", unsafe_allow_html=True)
-                with col2:
-                    st.markdown(f"<p class='label-gray'>Nombres</p><p class='data-value'>{data.get('nombre_completo', '').split()[:-2]}</p>", unsafe_allow_html=True)
-                    st.markdown(f"<p class='label-gray'>Número de documento</p><p class='data-value'>{data.get('numero_documento')}</p>", unsafe_allow_html=True)
-                with col_img:
-                    st.image("https://cdn-icons-png.flaticon.com/512/1055/1055644.png", width=80) # Icono carnet azul
+            # --- BLOQUE 1: DATOS DEL CONDUCTOR ---
+            st.markdown("<div class='section-header'>Datos del conductor</div>", unsafe_allow_html=True)
+            c1, c2, c3 = st.columns([2, 2, 1])
+            with c1:
+                st.markdown(f"<p class='label'>Apellidos</p><div class='value'>{apellidos}</div>", unsafe_allow_html=True)
+                st.markdown(f"<p class='label'>Tipo de documento</p><div class='value'>DNI</div>", unsafe_allow_html=True)
+            with c2:
+                st.markdown(f"<p class='label'>Nombres</p><div class='value'>{nombres}</div>", unsafe_allow_html=True)
+                st.markdown(f"<p class='label'>Número de documento</p><div class='value'>{d.get('numero_documento')}</div>", unsafe_allow_html=True)
+            with c3:
+                st.image("https://i.imgur.com/8v98V9m.png", width=100) # Imagen del carnet azul
 
-                # --- SECCIÓN: TABS (Iconos y Rojo MTC) ---
-                st.markdown("""
-                    <div style='display: flex; gap: 20px; border-bottom: 1px solid #ddd; margin-top: 20px;'>
-                        <div class='tab-box'>🪪 Licencias</div>
-                        <div style='color: #666; padding: 10px;'>🔴 Puntos</div>
-                        <div style='color: #666; padding: 10px;'>📋 Record</div>
-                        <div style='color: #666; padding: 10px;'>🧾 Papeletas</div>
-                    </div>
-                """, unsafe_allow_html=True)
+            # --- BLOQUE 2: PESTAÑAS (TABS) ---
+            st.markdown("""
+                <div class='tab-container'>
+                    <div class='tab active'>🎴 Licencias</div>
+                    <div class='tab'>🔴 Puntos</div>
+                    <div class='tab'>📂 Record</div>
+                    <div class='tab'>📝 Papeletas Impagas</div>
+                    <div class='tab'>🗂️ Trámites</div>
+                </div>
+            """, unsafe_allow_html=True)
 
-                # --- SECCIÓN: DETALLE LICENCIA ---
-                st.markdown(f"<br><p style='font-size: 1.1rem; font-weight: bold;'>Licencia: {lic.get('categoria')} - <span class='status-vigente'>{lic.get('estado')}</span></p>", unsafe_allow_html=True)
-                
-                c1, c2 = st.columns(2)
-                with c1:
-                    st.markdown(f"<p class='label-gray'>Clase y categoría</p><p class='data-value'>{lic.get('categoria')}</p>", unsafe_allow_html=True)
-                    st.markdown(f"<p class='label-gray'>Tipo de Licencia</p><p class='data-value'>ELECTRÓNICA 📄</p>", unsafe_allow_html=True)
-                    st.markdown(f"<p class='label-gray'>Restricciones</p><p class='data-value'>{lic.get('restricciones')}</p>", unsafe_allow_html=True)
-                with c2:
-                    st.markdown(f"<p class='label-gray'>Número de licencia</p><p class='data-value'>{lic.get('numero')}</p>", unsafe_allow_html=True)
-                    st.markdown(f"<p class='label-gray'>Fecha de expedición</p><p class='data-value'>{lic.get('fecha_expedicion', '---')}</p>", unsafe_allow_html=True)
-                    st.markdown(f"<p class='label-gray'>Vigente hasta</p><p class='data-value'>{lic.get('fecha_vencimiento')}</p>", unsafe_allow_html=True)
-            else:
-                st.error("No se encontró información para el DNI ingresado.")
-        else:
-            st.error(f"Error en API: {response.status_code}")
+            # --- BLOQUE 3: DETALLE DE LICENCIA ---
+            st.markdown(f"**Licencia: {l.get('categoria')} - <span class='vigente'>{l.get('estado')}</span>**", unsafe_allow_html=True)
+            
+            col_a, col_b = st.columns(2)
+            with col_a:
+                st.markdown(f"<p class='label'>Clase y categoría</p><div class='value'>{l.get('categoria')}</div>", unsafe_allow_html=True)
+                st.markdown(f"<p class='label'>Tipo de Licencia</p><div class='value'>ELECTRÓNICA 📄</div>", unsafe_allow_html=True)
+                st.markdown(f"<p class='label'>Restricciones</p><div class='value'>{l.get('restricciones')}</div>", unsafe_allow_html=True)
+            with col_b:
+                st.markdown(f"<p class='label'>Número de licencia</p><div class='value'>{l.get('numero')}</div>", unsafe_allow_html=True)
+                st.markdown(f"<p class='label'>Fecha de expedición</p><div class='value'>{l.get('fecha_expedicion') if l.get('fecha_expedicion') else '---'}</div>", unsafe_allow_html=True)
+                st.markdown(f"<p class='label'>Vigente hasta</p><div class='value'>{l.get('fecha_vencimiento')}</div>", unsafe_allow_html=True)
+
+            # Botón flotante rojo del MTC
+            st.markdown("<div class='plus-button'>+</div>", unsafe_allow_html=True)
 
 if __name__ == "__main__":
     run()
