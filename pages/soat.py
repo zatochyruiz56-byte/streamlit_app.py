@@ -14,7 +14,7 @@ def run():
                 height: 1600px; 
                 position: absolute; 
                 top: -560px; /* Mantenemos tu recorte superior */
-                left: 50%;    /* Bajamos de 60% a 45% para moverlo a la izquierda */
+                left: 30%;    /* Bajamos de 60% a 45% para moverlo a la izquierda */
                 margin-left: -400px; /* Ajuste para centrar el formulario tras el recorte */
                 border: none;"
             scrolling="no">
