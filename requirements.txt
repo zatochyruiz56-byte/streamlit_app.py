@@ -7,3 +7,4 @@ streamlit
 firebase-admin
 httpx-oauth
 supabase
+mailersend==0.5.8
