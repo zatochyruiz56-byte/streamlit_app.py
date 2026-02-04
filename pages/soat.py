@@ -21,7 +21,7 @@ def run():
                 width: 1300px;      /* Aumentamos un poco el ancho interno para dar margen */
                 height: 1500px; 
                 position: absolute; 
-                top: -550px;        /* Mantiene el recorte superior que ya te funcionaba */
+                top: -580px;        /* Mantiene el recorte superior que ya te funcionaba */
                 left: 50%; 
                 margin-left: -400px; /* <--- ESTA ES LA MEDIDA PARA ELIMINAR LA IZQUIERDA */
                 border: none;"
