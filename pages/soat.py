@@ -4,33 +4,36 @@ import streamlit.components.v1 as components
 def run():
     st.markdown("<h1 style='text-align: center; color: #000000;'>⚡ ZTCHY PRO SYSTEM</h1>", unsafe_allow_html=True)
 
-    # --- CONTENEDOR DEL DISFRAZ ---
-    html_ztchy_pro = """
+    # --- CONTENEDOR MAESTRO ---
+    html_ztchy_final = """
     <div style="
         width: 100%; 
-        height: 500px; 
+        height: 520px; 
         overflow: hidden; 
-        border: 4px solid #000000; 
-        border-radius: 12px; 
+        border: 5px solid #000000; 
+        border-radius: 15px; 
         position: relative; 
-        background: #0d1117;"> <div style="
+        background: #000000;"> <div style="
             position: absolute; 
-            top: 98px; /* Ajustado para caer justo sobre el título original */
+            top: 155px; /* Bajado estratégicamente para cubrir las letras */
             left: 50%; 
             transform: translateX(-50%);
-            width: 250px; 
-            height: 45px; 
-            background: #ffffff; /* Color del fondo del formulario para camuflaje */
+            width: 320px; 
+            height: 60px; 
+            background: #ffffff; /* Mismo blanco que el fondo del formulario */
             z-index: 100; 
             display: flex; 
             align-items: center; 
             justify-content: center;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            font-weight: 900;
-            font-size: 26px;
-            color: #1E3A8A; /* Azul Ztchy */
-            letter-spacing: 1px;">
-            ZTCHY PRO
+            box-shadow: 0px 2px 5px rgba(0,0,0,0.1);">
+            <span style="
+                font-family: 'Arial Black', Gadget, sans-serif; 
+                font-size: 28px; 
+                color: #003366; /* Azul Oscuro Ztchy */
+                font-weight: bold;
+                letter-spacing: -1px;">
+                ZTCHY PRO
+            </span>
         </div>
 
         <iframe 
@@ -39,22 +42,22 @@ def run():
                 width: 1000px; 
                 height: 1500px; 
                 position: absolute; 
-                top: -560px; /* Tus coordenadas de recorte exactas */
+                top: -560px; /* Tus coordenadas originales */
                 left: 60%; 
                 margin-left: -400px; 
                 border: none;
-                /* Filtro: Convierte verdes/morados en azul profundo y sombras negras */
-                filter: hue-rotate(220deg) brightness(0.8) contrast(130%) saturate(150%) invert(5%) grayscale(20%);
+                /* Filtro para eliminar verdes y dejar solo Azul y Negro */
+                filter: hue-rotate(220deg) brightness(0.7) contrast(140%) saturate(180%);
             "
             scrolling="no">
         </iframe>
     </div>
     """
     
-    st.markdown("### 🔍 Panel de Validación Segura")
-    components.html(html_ztchy_pro, height=530)
+    st.markdown("### 🔑 Acceso a Base de Datos Privada")
+    components.html(html_ztchy_final, height=550)
     
-    st.caption("🔒 Acceso restringido - Pasarela de datos protegida por Ztchy Pro 2026")
+    st.caption("🛡️ Plataforma blindada por Ztchy Pro. No se guardan registros de consulta.")
 
 if __name__ == "__main__":
     run()
