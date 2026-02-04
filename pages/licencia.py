@@ -22,7 +22,7 @@ def run():
                 width: 1000px; 
                 height: 1500px; 
                 position: absolute; 
-                top: -500px;       /* SUBIMOS MÁS EL CONTENIDO (Antes -120px) */
+                top: -1000px;       /* SUBIMOS MÁS EL CONTENIDO (Antes -120px) */
                 left: 50%; 
                 margin-left: -500px; /* Centra el formulario de DNI */
                 border: none;"
