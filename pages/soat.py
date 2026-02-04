@@ -11,7 +11,7 @@ def run():
         <iframe src="https://www.apeseg.org.pe/consultas-soat/" 
             style="
                 width: 1500px; 
-                height: 1600px; 
+                height: 2000px; 
                 position: absolute; 
                 top: -560px; /* Mantenemos tu recorte superior */
                 left: 30%;    /* Bajamos de 60% a 45% para moverlo a la izquierda */
