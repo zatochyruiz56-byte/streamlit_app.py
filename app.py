@@ -2,7 +2,7 @@ import streamlit as st
 import firebase_admin
 from firebase_admin import credentials, firestore
 
-# 1. CONEXIÓN A TU BASE DE DATOS ZTCHY-PRO
+# Conexión con Secrets
 if not firebase_admin._apps:
     creds_dict = dict(st.secrets["firebase"])
     creds_dict["private_key"] = creds_dict["private_key"].replace("\\n", "\n")
@@ -11,61 +11,83 @@ if not firebase_admin._apps:
 
 db = firestore.client()
 
-# 2. DISEÑO SEEKER V6 (Inyectando el estilo de la imagen)
+# --- INTERFAZ SEEKER v6 ---
 st.markdown("""
     <style>
-    .stApp {
-        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 50%, #f093fb 100%);
-    }
-    .login-card {
-        background: white;
-        padding: 30px;
-        border-radius: 15px;
-        box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-        text-align: center;
-        max-width: 400px;
-        margin: auto;
-    }
+    .stApp { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 50%, #f093fb 100%); }
+    .card { background: white; padding: 2rem; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); text-align: center; color: #333; }
     </style>
 """, unsafe_allow_html=True)
 
-# 3. LÓGICA DE LOGIN
-if 'logged_in' not in st.session_state:
-    st.session_state.logged_in = False
+if 'page' not in st.session_state: st.session_state.page = 'login'
 
-if not st.session_state.logged_in:
+# --- PÁGINA DE LOGIN ---
+if st.session_state.page == 'login':
     with st.container():
-        st.markdown('<div class="login-card">', unsafe_allow_html=True)
-        st.image("https://rotulosmatesanz.com/wp-content/uploads/2017/09/2000px-Google_G_Logo.svg_.png", width=30)
+        st.markdown('<div class="card">', unsafe_allow_html=True)
         st.subheader("Iniciar Sesión - SEEKER v6")
         
-        user = st.text_input("Nombre de Usuario", placeholder="Ej: ZATOCHY")
-        pw = st.text_input("Contraseña", type="password")
-        
+        # Simulación Login Google (Requiere configuración OAuth avanzada para ser real)
+        if st.button("🌐 Ingresar con Google"):
+            st.info("Configura la pantalla de consentimiento de Google Cloud para activar esto.")
+
+        user_input = st.text_input("Nombre de Usuario", key="l_user").upper()
+        pass_input = st.text_input("Contraseña", type="password", key="l_pass")
+
         if st.button("Ingresar"):
-            # Buscamos el documento exacto que creaste en Firestore
-            doc_ref = db.collection("USUARIOS").document(user.upper()).get()
-            if doc_ref.exists:
-                datos = doc_ref.to_dict()
-                if datos.get("password") == pw:
-                    if datos.get("estado") == "activo":
-                        st.session_state.logged_in = True
-                        st.session_state.user_data = datos
-                        st.rerun()
-                    else:
-                        st.error("🚫 Estás BANEADO. Contacta al admin.")
-                else:
-                    st.error("❌ Contraseña incorrecta.")
-            else:
-                st.error("❌ El usuario no existe.")
-        st.markdown('</div>', unsafe_allow_html=True)
-else:
-    # AQUÍ VA TU MENÚ DE CONSULTAS (DNI, LICENCIA, ETC)
-    st.sidebar.success(f"Usuario: {st.session_state.user_data['username']}")
-    st.sidebar.info(f"Créditos: S/ {st.session_state.user_data['creditos']}")
-    
-    if st.sidebar.button("Cerrar Sesión"):
-        st.session_state.logged_in = False
-        st.rerun()
+            # CORRECCIÓN: Buscamos en 'COLECCION'
+            doc = db.collection("COLECCION").document(user_input).get()
+            if doc.exists:
+                res = doc.to_dict()
+                if res['PASSWORD'] == pass_input:
+                    st.success("¡Bienvenido!")
+                    st.session_state.user = res
+                    st.session_state.page = 'home'
+                    st.rerun()
+                else: st.error("Contraseña incorrecta")
+            else: st.error("El usuario no existe")
         
-    st.title("Bienvenido al Panel de Consultas")
+        if st.button("¿No tienes cuenta? Regístrate"):
+            st.session_state.page = 'registro'
+            st.rerun()
+        st.markdown('</div>', unsafe_allow_html=True)
+
+# --- PÁGINA DE REGISTRO ---
+elif st.session_state.page == 'registro':
+    with st.container():
+        st.markdown('<div class="card">', unsafe_allow_html=True)
+        st.subheader("Crear Cuenta")
+        new_user = st.text_input("Username", key="r_user").upper()
+        new_names = st.text_input("Nombres y Apellidos")
+        new_email = st.text_input("Correo")
+        new_pass = st.text_input("Contraseña", type="password")
+        
+        if st.button("Finalizar Registro"):
+            if new_user and new_pass:
+                # Guardamos en la colección correcta
+                db.collection("COLECCION").document(new_user).set({
+                    "USERNAME": new_user,
+                    "NAMES": new_names,
+                    "email": new_email,
+                    "PASSWORD": new_pass,
+                    "creditos": 0,
+                    "estado": "activo",
+                    "rol": "cliente"
+                })
+                st.success("¡Registro exitoso! Ya puedes iniciar sesión.")
+                st.session_state.page = 'login'
+                st.rerun()
+        
+        if st.button("Volver al Login"):
+            st.session_state.page = 'login'
+            st.rerun()
+        st.markdown('</div>', unsafe_allow_html=True)
+
+# --- PÁGINA PRINCIPAL ---
+elif st.session_state.page == 'home':
+    st.sidebar.title(f"Hola, {st.session_state.user['USERNAME']}")
+    st.sidebar.metric("Tus Créditos", f"S/ {st.session_state.user['creditos']}")
+    if st.sidebar.button("Cerrar Sesión"):
+        st.session_state.page = 'login'
+        st.rerun()
+    st.write("### Bienvenido al sistema de consultas")
