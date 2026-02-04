@@ -19,7 +19,7 @@ def run():
         
         <iframe src="https://licencias.mtc.gob.pe/#/index" 
             style="
-                width: 120px; 
+                width: 300px; 
                 height: 1500px; 
                 position: absolute; 
                 top: -1000px;       /* SUBIMOS MÁS EL CONTENIDO (Antes -120px) */
