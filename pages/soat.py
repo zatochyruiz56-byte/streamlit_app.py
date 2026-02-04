@@ -10,7 +10,7 @@ def run():
     <div style="width: 100%; height: 500px; overflow: hidden; border: 2px solid #1E3A8A; border-radius: 12px; position: relative; background: white;">
         <iframe src="https://www.apeseg.org.pe/consultas-soat/" 
             style="
-                width: 1000px; 
+                width: 800px; 
                 height: 1500px; 
                 position: absolute; 
                 top: -560px; /* Mantenemos tu recorte superior */
