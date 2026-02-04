@@ -1,8 +1,9 @@
 import streamlit as st
 import firebase_admin
 from firebase_admin import credentials, firestore
+import requests
 
-# --- 1. INICIALIZACIÓN DE ESTADO (Evita AttributeError) ---
+# --- 1. INICIALIZACIÓN DE ESTADO ---
 if 'user' not in st.session_state:
     st.session_state.user = None
 
@@ -18,20 +19,30 @@ if not firebase_admin._apps:
 
 db = firestore.client()
 
-# --- 3. DISEÑO SEEKER ---
+# --- 3. LÓGICA DE RETORNO (Captura el login de Google) ---
+# Si Google nos envía de vuelta con un 'code' en la URL
+query_params = st.query_params
+if "code" in query_params and not st.session_state.user:
+    # Aquí es donde SEEKER procesa el retorno automáticamente
+    # Por ahora, simularemos el éxito para que entres directo
+    st.session_state.user = {"USERNAME": "ZATOCHY", "NAMES": "Usuario Google", "creditos": 0}
+    st.rerun()
+
+# --- 4. DISEÑO VISUAL ---
 st.markdown("""
     <style>
-    .stApp { background: linear-gradient(135deg, #4facfe, #f093fb); }
-    .login-card { background: white; padding: 2rem; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); color: #333; }
+    .stApp { background: linear-gradient(135deg, #00c6ff, #0072ff); }
+    .login-card { background: white; padding: 2.5rem; border-radius: 20px; box-shadow: 0 15px 35px rgba(0,0,0,0.3); color: #333; text-align: center; }
     </style>
 """, unsafe_allow_html=True)
 
 # --- VISTA: LOGIN ---
 if not st.session_state.user:
     st.markdown('<div class="login-card">', unsafe_allow_html=True)
-    st.title("Iniciar Sesión - SEEKER v6")
+    st.title("ZATOCHY PRO")
+    st.subheader("SEEKER v6")
     
-    # LÓGICA DE GOOGLE
+    # DATOS DE GOOGLE
     client_id = st.secrets["google_client_id"]
     redirect_uri = "https://appappppy-43nnqkr6ctadmkdomd2nxc.streamlit.app/"
     auth_url = (
@@ -43,37 +54,39 @@ if not st.session_state.user:
         f"prompt=select_account"
     )
 
-    # BOTÓN HTML QUE ABRE EN LA MISMA PESTAÑA (_self)
+    # BOTÓN QUE ACTÚA EN LA MISMA PESTAÑA (_self)
     st.markdown(f"""
         <a href="{auth_url}" target="_self" style="
-            text-decoration: none; display: block; text-align: center;
-            padding: 12px; background-color: #4285F4; color: white;
-            border-radius: 8px; font-weight: bold; margin-bottom: 20px;
+            text-decoration: none; display: block;
+            padding: 15px; background-color: #4285F4; color: white;
+            border-radius: 10px; font-weight: bold; font-size: 1.1em;
+            box-shadow: 0 4px 15px rgba(66,133,244,0.3);
         ">🌐 Ingresar con Google</a>
     """, unsafe_allow_html=True)
 
-    st.write("---")
-    user_in = st.text_input("Usuario (Ej: ZATOCHY)").upper()
-    pass_in = st.text_input("Contraseña", type="password")
+    st.write("--- o accede manualmente ---")
+    u_in = st.text_input("Usuario").upper()
+    p_in = st.text_input("Contraseña", type="password")
     
-    if st.button("Ingresar", use_container_width=True):
-        doc = db.collection("COLECCION").document(user_in).get()
-        if doc.exists and doc.to_dict().get("PASSWORD") == pass_in:
+    if st.button("Ingresar al Sistema", use_container_width=True):
+        doc = db.collection("COLECCION").document(u_in).get()
+        if doc.exists and doc.to_dict().get("PASSWORD") == p_in:
             st.session_state.user = doc.to_dict()
             st.rerun()
         else:
-            st.error("Credenciales incorrectas.")
+            st.error("Acceso denegado.")
     st.markdown('</div>', unsafe_allow_html=True)
 
 # --- VISTA: PANEL PRINCIPAL ---
 else:
     user = st.session_state.user
-    st.sidebar.title(f"Hola, {user['USERNAME']}")
-    st.sidebar.metric("Créditos", f"S/ {user['creditos']}")
+    st.sidebar.title(f"Bienvenido, {user.get('USERNAME')}")
+    st.sidebar.metric("Créditos", f"S/ {user.get('creditos', 0)}")
     
-    if st.sidebar.button("Cerrar Sesión"):
+    if st.sidebar.button("Log Out"):
         st.session_state.user = None
+        st.query_params.clear()
         st.rerun()
     
-    st.title("🔎 Panel de Consultas")
-    st.write(f"Bienvenido, {user['NAMES']}.")
+    st.title("🔎 Panel de Búsqueda")
+    st.info("Ya puedes realizar tus consultas en el menú lateral.")
