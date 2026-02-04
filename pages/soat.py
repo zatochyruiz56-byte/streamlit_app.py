@@ -23,7 +23,7 @@ def run():
                 position: absolute; 
                 top: -560px;        /* Mantiene el recorte superior que ya te funcionaba */
                 left: 50%; 
-                margin-left: -300px; /* <--- ESTA ES LA MEDIDA PARA ELIMINAR LA IZQUIERDA */
+                margin-left: -400px; /* <--- ESTA ES LA MEDIDA PARA ELIMINAR LA IZQUIERDA */
                 border: none;"
             scrolling="no">
         </iframe>
