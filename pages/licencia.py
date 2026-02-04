@@ -2,59 +2,56 @@ import streamlit as st
 import requests
 
 def run():
-    st.set_page_config(page_title="Consulta MTC Pro", page_icon="🪪")
+    st.set_page_config(page_title="MTC Factiliza Pro", page_icon="💳")
     
-    st.markdown("<h2 style='text-align: center;'>🚀 Consulta de Licencias MTC (Automática)</h2>", unsafe_allow_html=True)
+    st.markdown("<h2 style='text-align: center;'>🪪 Consulta MTC via Factiliza</h2>", unsafe_allow_html=True)
     
-    # Configuración de la API
-    API_URL = "https://api.consultasperu.com/api/v1/query/license"
-    TOKEN = "be8b5bbe5b741ace308b5dba137d78c8c6a71c1217a8dad1db5db816883cc863"
+    # Configuración de credenciales
+    TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI0MDMwNSIsImh0dHA6Ly9zY2hlbWFzLm1pY3Jvc29mdC5jb20vd3MvMjAwOC8wNi9pZGVudGl0eS9jbGFpbXMvcm9sZSI6ImNvbnN1bHRvciJ9.Gsokm2AIDVCMdG5etymgkljwqXoCrb7b24c75H_VMr0"
+    headers = {"Authorization": f"Bearer {TOKEN}"}
 
-    dni = st.text_input("Ingrese el número de DNI:", max_chars=8)
+    dni = st.text_input("Ingrese DNI del conductor:", max_chars=8, placeholder="Ej. 44747700")
 
-    if st.button("🔍 Consultar Ahora", use_container_width=True):
-        if len(dni) == 8:
-            with st.spinner("Conectando con la base de datos del MTC..."):
+    if st.button("🚀 Consultar Licencia", use_container_width=True):
+        if len(dni) == 8 and dni.isdigit():
+            with st.spinner("Buscando en Factiliza..."):
                 try:
-                    # Estructura del Body según documentación
-                    payload = {
-                        "token": TOKEN,
-                        "dni": dni
-                    }
-                    headers = {'Content-Type': 'application/json'}
+                    # Construcción de la URL dinámica
+                    url = f"https://api.factiliza.com/v1/licencia/info/{dni}"
                     
-                    response = requests.post(API_URL, json=payload, headers=headers)
+                    response = requests.get(url, headers=headers)
                     
                     if response.status_code == 200:
-                        resultado = response.json()
+                        data = response.json()
                         
-                        if resultado.get("success"):
-                            data = resultado["data"] #
-                            
-                            # Mostrar Resultados en tarjetas limpias
-                            st.success(f"✅ Conductor: {data['full_name']}")
-                            
-                            col1, col2, col3 = st.columns(3)
-                            # Accediendo a la lista de licencias
-                            licencia = data["license"][0] 
-                            
+                        # Mostramos los datos de manera elegante
+                        st.balloons()
+                        st.success("✅ Información recuperada con éxito")
+                        
+                        # Estructura basada en respuesta típica de licencias
+                        with st.expander("📄 Ver Ficha Completa", expanded=True):
+                            col1, col2 = st.columns(2)
                             with col1:
-                                st.metric("Categoría", licencia["category"])
+                                st.write(f"**Nombre Completo:** {data.get('nombre', 'No disponible')}")
+                                st.write(f"**Clase/Categoría:** {data.get('categoria', 'N/A')}")
                             with col2:
-                                st.metric("Estado", licencia["status"])
-                            with col3:
-                                st.metric("Vence", licencia["date_of_due"])
-                                
-                            st.info(f"📝 Observaciones: {licencia['observations']}")
-                        else:
-                            st.error(f"❌ Error: {resultado.get('message', 'No se encontraron datos')}")
+                                st.write(f"**Nro. Licencia:** {data.get('numeroLicencia', dni)}")
+                                st.write(f"**Fecha Vencimiento:** {data.get('fechaVencimiento', 'N/A')}")
+                            
+                            st.divider()
+                            st.subheader("📊 Récord del Conductor")
+                            st.metric("Puntos Acumulados", data.get("puntos", "0"))
+                            st.write(f"**Estado:** {data.get('estado', 'VIGENTE')}")
+                    
+                    elif response.status_code == 401:
+                        st.error("🚫 Error de Autorización: Tu token ha expirado o es incorrecto.")
                     else:
-                        st.error(f"⚠️ Error de conexión (Código: {response.status_code})")
+                        st.error(f"⚠️ Error {response.status_code}: No se pudo obtener la información.")
                         
                 except Exception as e:
-                    st.error(f"🔥 Ocurrió un error inesperado: {e}")
+                    st.error(f"❌ Error de conexión: {str(e)}")
         else:
-            st.warning("Please ingrese un DNI válido de 8 dígitos.")
+            st.warning("⚠️ Por favor, ingrese un DNI válido de 8 dígitos numéricos.")
 
 if __name__ == "__main__":
     run()
