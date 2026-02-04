@@ -1,138 +1,85 @@
 import streamlit as st
 import firebase_admin
 from firebase_admin import credentials, firestore
+from httpx_oauth.clients.google import GoogleOAuth2
 
-# 1. CONFIGURACIÓN DE PÁGINA Y ESTILO SEEKER v6
-st.set_page_config(page_title="SEEKER v6", page_icon="🔍", layout="centered")
-
-st.markdown("""
-    <style>
-    .stApp {
-        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 50%, #f093fb 100%);
-    }
-    .main-card {
-        background: white;
-        padding: 30px;
-        border-radius: 20px;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-        color: #333;
-    }
-    .stButton>button {
-        width: 100%;
-        border-radius: 10px;
-        height: 3em;
-        background: linear-gradient(to right, #6a11cb, #2575fc);
-        color: white;
-        border: none;
-    }
-    </style>
-""", unsafe_allow_html=True)
-
-# 2. CONEXIÓN A TU BASE DE DATOS ZTCHY-PRO
+# 1. INICIALIZACIÓN DE FIREBASE
 if not firebase_admin._apps:
     creds_dict = dict(st.secrets["firebase"])
     creds_dict["private_key"] = creds_dict["private_key"].replace("\\n", "\n")
-    cred = credentials.Certificate(creds_dict)
-    firebase_admin.initialize_app(cred)
+    firebase_admin.initialize_app(credentials.Certificate(creds_dict))
 
 db = firestore.client()
 
-# 3. MANEJO DE SESIÓN Y VISTAS
-if 'page' not in st.session_state:
-    st.session_state.page = 'login'
-if 'user_data' not in st.session_state:
-    st.session_state.user_data = None
+# 2. CONFIGURACIÓN DE GOOGLE OAUTH
+client_id = st.secrets["google_client_id"]
+client_secret = st.secrets["google_client_secret"]
+redirect_uri = "https://appappppy-43nnqkr6ctadmkdomd2nxc.streamlit.app/"
+client = GoogleOAuth2(client_id, client_secret)
 
-# --- FUNCIÓN DE LOGIN ---
-def login():
-    st.markdown('<div class="main-card">', unsafe_allow_html=True)
-    st.subheader("Iniciar Sesión - SEEKER v6")
+# 3. INTERFAZ SEEKER V6
+st.markdown("""
+    <style>
+    .stApp { background: linear-gradient(135deg, #4facfe, #00f2fe, #f093fb); }
+    .card { background: white; padding: 2rem; border-radius: 15px; color: #333; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+    </style>
+""", unsafe_allow_html=True)
+
+async def get_google_user(code):
+    token = await client.get_access_token(code, redirect_uri)
+    user_info = await client.get_id_email(token["access_token"])
+    return user_info
+
+# Lógica de navegación
+if 'user' not in st.session_state: st.session_state.user = None
+
+# Verificar si venimos regresando de Google
+query_params = st.query_params
+if "code" in query_params and not st.session_state.user:
+    import asyncio
+    user_info = asyncio.run(get_google_user(query_params["code"]))
+    # Buscamos si el correo existe en tu COLECCION
+    email = user_info[1]
+    docs = db.collection("COLECCION").where("email", "==", email).stream()
+    user_data = None
+    for d in docs: user_data = d.to_dict()
     
-    # Botón de Google (Interfaz)
-    if st.button("🌐 Ingresar con Google"):
-        st.info("Redirigiendo a Google...") 
+    if user_data:
+        st.session_state.user = user_data
+        st.query_params.clear()
+        st.rerun()
+    else:
+        st.error("Tu correo de Google no está registrado en el sistema.")
 
-    user_input = st.text_input("Nombre de Usuario", placeholder="Ej: ZATOCHY").upper()
-    pass_input = st.text_input("Contraseña", type="password", placeholder="••••••••")
-
+# --- VISTA DE LOGIN ---
+if not st.session_state.user:
+    st.markdown('<div class="card">', unsafe_allow_html=True)
+    st.title("Iniciar Sesión - SEEKER v6")
+    
+    # BOTÓN DE GOOGLE REAL
+    authorization_url = asyncio.run(client.get_authorization_url(redirect_uri, scope=["email", "profile"]))
+    st.link_button("🌐 Ingresar con Google", authorization_url)
+    
+    st.write("--- o entra con tu usuario ---")
+    user_in = st.text_input("Usuario").upper()
+    pass_in = st.text_input("Contraseña", type="password")
+    
     if st.button("Ingresar"):
-        # Buscamos en 'COLECCION' que es donde tienes a ZATOCHY
-        doc_ref = db.collection("COLECCION").document(user_input).get()
-        
-        if doc_ref.exists:
-            datos = doc_ref.to_dict()
-            # El campo en tu Firestore es PASSWORD en mayúsculas
-            if datos.get('PASSWORD') == pass_input:
-                if datos.get('estado') == 'activo':
-                    st.session_state.user_data = datos
-                    st.session_state.page = 'home'
-                    st.rerun()
-                else:
-                    st.error("🚫 Cuenta suspendida.")
-            else:
-                st.error("❌ Contraseña incorrecta.")
-        else:
-            st.error("❌ El usuario no existe.")
-
-    if st.button("¿No tienes cuenta? Regístrate"):
-        st.session_state.page = 'registro'
-        st.rerun()
+        doc = db.collection("COLECCION").document(user_in).get()
+        if doc.exists:
+            datos = doc.to_dict()
+            if datos.get('PASSWORD') == pass_in:
+                st.session_state.user = datos
+                st.rerun()
+            else: st.error("Contraseña incorrecta")
+        else: st.error("El usuario no existe")
     st.markdown('</div>', unsafe_allow_html=True)
-
-# --- FUNCIÓN DE REGISTRO ---
-def registro():
-    st.markdown('<div class="main-card">', unsafe_allow_html=True)
-    st.subheader("Crear Cuenta")
-    
-    new_user = st.text_input("Username").upper()
-    new_name = st.text_input("Nombres y Apellidos")
-    new_email = st.text_input("Correo Electrónico")
-    new_pass = st.text_input("Contraseña", type="password")
-    confirm_pass = st.text_input("Repetir Contraseña", type="password")
-
-    if st.button("Finalizar Registro"):
-        if new_pass != confirm_pass:
-            st.error("Las contraseñas no coinciden")
-        elif not new_user or not new_pass:
-            st.error("Completa los campos obligatorios")
-        else:
-            # Creamos el documento en COLECCION
-            db.collection("COLECCION").document(new_user).set({
-                "USERNAME": new_user,
-                "NAMES": new_name,
-                "email": new_email,
-                "PASSWORD": new_pass,
-                "creditos": 0,
-                "estado": "activo",
-                "rol": "cliente"
-            })
-            st.success("✅ Registro exitoso. ¡Inicia sesión!")
-            st.session_state.page = 'login'
-            st.rerun()
-
-    if st.button("Volver al Inicio"):
-        st.session_state.page = 'login'
-        st.rerun()
-    st.markdown('</div>', unsafe_allow_html=True)
-
-# --- PANEL PRINCIPAL (HOME) ---
-def home():
-    user = st.session_state.user_data
-    st.sidebar.title(f"Bienvenido, {user['USERNAME']}")
-    st.sidebar.metric("Créditos Disponibles", f"S/ {user['creditos']}")
+else:
+    # PANEL PRINCIPAL
+    st.sidebar.title(f"Hola, {st.session_state.user['USERNAME']}")
+    st.sidebar.metric("Créditos", f"S/ {st.session_state.user['creditos']}")
     
     if st.sidebar.button("Cerrar Sesión"):
-        st.session_state.user_data = None
-        st.session_state.page = 'login'
+        st.session_state.user = None
         st.rerun()
-
-    st.title("🔍 Sistema de Consultas")
-    st.write("Selecciona una opción en el menú de la izquierda.")
-
-# --- NAVEGACIÓN ---
-if st.session_state.page == 'login':
-    login()
-elif st.session_state.page == 'registro':
-    registro()
-elif st.session_state.page == 'home':
-    home()
+    st.write("## Bienvenido al buscador")
