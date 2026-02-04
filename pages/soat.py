@@ -21,7 +21,7 @@ def run():
                 height: 3000px; 
                 position: absolute; 
                 top: -720px;       /* Ajustado para compensar el zoom */
-                left: 50%; 
+                left: 70%; 
                 margin-left: -1040px; /* Empujado más a la izquierda para borrar el anuncio */
                 border: none;
                 transform: scale(1.3); /* Zoom al 130% para llenar la pantalla */
