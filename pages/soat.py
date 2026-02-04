@@ -16,7 +16,7 @@ def run():
                 position: absolute; 
                 top: -560px; 
                 left: 70%; 
-                margin-left: -350px; 
+                margin-left: -420px; 
                 border: none;"
             scrolling="no">
         </iframe>
