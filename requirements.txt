@@ -3,5 +3,6 @@ requests
 pdf2image
 Pillow
 beautifulsoup4
-firebase-admin
 streamlit
+firebase-admin
+httpx-oauth
