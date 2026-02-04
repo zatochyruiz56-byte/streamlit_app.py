@@ -1,11 +1,13 @@
 import streamlit as st
 import firebase_admin
-from firebase_admin import credentials, firestore
+from firebase_admin import credentials, auth, firestore
+import requests
+import random
 
-# --- 1. CONFIGURACIÓN E INYECCIÓN DE INTERFAZ (EL MURO) ---
-st.set_page_config(page_title="ZTCHY PRO", layout="centered", initial_sidebar_state="collapsed")
+# --- 1. EL MURO (CONFIGURACIÓN VISUAL) ---
+st.set_page_config(page_title="ZTCHY PRO", layout="centered")
 
-# Muro visual de Machu Picchu
+# Fondo de Machu Picchu que bloquea todo
 st.markdown(f"""
     <style>
     .stApp {{
@@ -15,14 +17,20 @@ st.markdown(f"""
         background-position: center;
         background-attachment: fixed;
     }}
-    /* Bloqueo total del Sidebar si no está autenticado */
+    /* Ocultar barra lateral si no hay login */
     [data-testid="stSidebar"] {{
         display: {"block" if st.session_state.get('auth_active', False) else "none"};
+    }}
+    .auth-container {{
+        background-color: rgba(255, 255, 255, 0.95);
+        padding: 30px;
+        border-radius: 15px;
+        color: black;
     }}
     </style>
     """, unsafe_allow_html=True)
 
-# --- 2. INICIALIZACIÓN ÚNICA DE FIREBASE ---
+# --- 2. INICIALIZACIÓN DE CEREBRO (FIREBASE) ---
 if not firebase_admin._apps:
     fb_dict = dict(st.secrets["firebase"])
     fb_dict["private_key"] = fb_dict["private_key"].replace('\\n', '\n')
@@ -31,27 +39,109 @@ if not firebase_admin._apps:
 
 db = firestore.client()
 
-# --- 3. CONTROLADOR DE FLUJO (LA LÓGICA CEREBRO) ---
-# Inicializamos el estado si no existe
+# --- 3. ESTADO DEL CEREBRO ---
 if "auth_active" not in st.session_state:
     st.session_state.auth_active = False
-if "user_session" not in st.session_state:
-    st.session_state.user_session = None
+if "user_data" not in st.session_state:
+    st.session_state.user_data = None
+if "step" not in st.session_state:
+    st.session_state.step = "login"
 
-# Función para cerrar sesión desde cualquier lugar
-def logout():
-    st.session_state.auth_active = False
-    st.session_state.user_session = None
-    st.rerun()
+# --- 4. FUNCIONES DEL SISTEMA ---
+def send_otp(email, code):
+    url = "https://api.mailersend.com/v1/email"
+    headers = {"Authorization": f"Bearer {st.secrets['mailersend_api_key']}", "Content-Type": "application/json"}
+    payload = {
+        "from": {"email": f"MS_ALHbS4@{st.secrets['mailersend_domain']}"}, # Dominio verificado
+        "to": [{"email": email}],
+        "subject": "Código de Verificación ZTCHY",
+        "html": f"<h2>Tu código es: {code}</h2>"
+    }
+    return requests.post(url, json=payload, headers=headers)
 
-# --- 4. EL FILTRO DE SEGURIDAD ---
+# --- 5. LÓGICA DE CAPAS (EL FILTRO) ---
+
+# CAPA A: ACCESO RESTRINGIDO (LOGIN/REGISTRO)
 if not st.session_state.auth_active:
-    # CAPA 1: Solo Login y Registro
-    # Aquí puedes importar tus funciones de login o ponerlas directo
-    import login_module # O el nombre que le des a tu archivo de login
-    login_module.show_auth_page()
+    st.markdown('<div class="auth-container">', unsafe_allow_html=True)
+    
+    if st.session_state.step == "login":
+        st.title("🏔️ ZTCHY PRO")
+        email_log = st.text_input("Correo")
+        pass_log = st.text_input("Contraseña", type="password")
+        
+        if st.button("Iniciar Sesión", use_container_width=True):
+            try:
+                user = auth.get_user_by_email(email_log)
+                st.session_state.user_data = {"uid": user.uid, "email": user.email}
+                st.session_state.auth_active = True
+                st.rerun()
+            except:
+                st.error("Credenciales incorrectas o usuario no registrado.")
+        
+        if st.button("No tengo cuenta", use_container_width=True):
+            st.session_state.step = "register"
+            st.rerun()
+
+    elif st.session_state.step == "register":
+        st.title("📝 Registro Nuevo")
+        reg_email = st.text_input("Correo nuevo")
+        reg_pass = st.text_input("Clave nueva", type="password")
+        
+        if st.button("Enviar Código", use_container_width=True):
+            if reg_email and reg_pass:
+                st.session_state.temp_otp = str(random.randint(100000, 999999))
+                st.session_state.temp_user = {"email": reg_email, "pass": reg_pass}
+                send_otp(reg_email, st.session_state.temp_otp)
+                st.session_state.step = "verify"
+                st.rerun()
+
+    elif st.session_state.step == "verify":
+        st.title("🛡️ Verifica tu correo")
+        otp_in = st.text_input("Código de 6 dígitos")
+        if st.button("Validar y Entrar"):
+            if otp_in == st.session_state.temp_otp:
+                user = auth.create_user(
+                    email=st.session_state.temp_user["email"],
+                    password=st.session_state.temp_user["pass"]
+                )
+                # Crear saldo inicial en Firestore
+                db.collection("usuarios").document(user.uid).set({"email": user.email, "saldo": 10})
+                st.success("¡Cuenta creada! Inicia sesión.")
+                st.session_state.step = "login"
+                st.rerun()
+    
+    st.markdown('</div>', unsafe_allow_html=True)
+
+# CAPA B: PANEL DE CONTROL (SÓLO SI AUTH_ACTIVE ES TRUE)
 else:
-    # CAPA 2: La Aplicación Real (Consultas y Saldo)
-    # Esta parte es invisible e inalcanzable sin auth_active = True
-    import main_panel # Tu archivo con la lógica de consultas
-    main_panel.show_dashboard(db, logout)
+    # Aquí el cerebro ya sabe que user_data existe, no habrá AttributeError
+    u_info = st.session_state.user_data
+    
+    # Menú Lateral
+    st.sidebar.title("Panel ZTCHY")
+    st.sidebar.write(f"Usuario: {u_info['email']}")
+    
+    # Obtener saldo de Firestore
+    doc = db.collection("usuarios").document(u_info['uid']).get()
+    saldo = doc.to_dict().get("saldo", 0) if doc.exists else 0
+    
+    st.sidebar.metric("Saldo Disponible", f"{saldo} créditos")
+    
+    if st.sidebar.button("Cerrar Sesión"):
+        st.session_state.auth_active = False
+        st.rerun()
+
+    # Contenido Principal
+    st.title("🔍 Sistema de Consultas")
+    query = st.text_input("¿Qué deseas consultar hoy?")
+    
+    if st.button("Realizar Consulta (-1 crédito)"):
+        if saldo > 0:
+            with st.spinner("Procesando..."):
+                # Restar saldo en Firestore
+                db.collection("usuarios").document(u_info['uid']).update({"saldo": firestore.Increment(-1)})
+                st.success("Consulta exitosa. Se ha descontado 1 crédito.")
+                st.rerun()
+        else:
+            st.error("⚠️ Saldo insuficiente.")
