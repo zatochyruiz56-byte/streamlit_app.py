@@ -5,7 +5,7 @@ def run():
     st.markdown("<h2 style='text-align: center;'>🛡️ Consulta de Historial SOAT</h2>", unsafe_allow_html=True)
 
     # --- VISOR CON RECORTE LATERAL QUIRÚRGICO ---
-    # Ajustamos el margin-left para eliminar el ruido visual de la izquierda
+    # Usamos -615px para empujar el contenido y eliminar lo que se ve a la izquierda
     html_apeseg = """
     <div style="
         width: 100%; 
@@ -18,12 +18,12 @@ def run():
         
         <iframe src="https://www.apeseg.org.pe/consultas-soat/" 
             style="
-                width: 1200px;      /* Ancho interno suficiente para el formulario */
+                width: 1300px;      /* Aumentamos un poco el ancho interno para dar margen */
                 height: 1500px; 
                 position: absolute; 
-                top: -560px;        /* Mantiene el recorte del encabezado */
-                left: 50%;          /* Centrado del contenedor */
-                margin-left: -615px; /* <--- VALOR CLAVE: Esconde todo lo de la izquierda */
+                top: -560px;        /* Mantiene el recorte superior que ya te funcionaba */
+                left: 50%; 
+                margin-left: -615px; /* <--- ESTA ES LA MEDIDA PARA ELIMINAR LA IZQUIERDA */
                 border: none;"
             scrolling="no">
         </iframe>
