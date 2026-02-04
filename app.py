@@ -2,49 +2,36 @@ import streamlit as st
 import firebase_admin
 from firebase_admin import credentials, firestore
 
-# --- 1. CONFIGURACIÓN INICIAL (EVITA ATTRIBUTEERROR) ---
-st.set_page_config(page_title="ZTCHY PRO", page_icon="🔍")
+# 1. Configuración de página y estado (EVITA EL ATTRIBUTEERROR)
+st.set_page_config(page_title="ZTCHY PRO", layout="centered")
 
 if 'user' not in st.session_state:
     st.session_state.user = None
 
-# --- 2. CONEXIÓN FIREBASE (RESISTENTE A ERRORES) ---
+# 2. Inicialización de Firebase (RESISTENTE A ERRORES DE LLAVE PEM)
 if not firebase_admin._apps:
     try:
-        # Extraemos los datos de Secrets
-        fb_creds = dict(st.secrets["firebase"])
-        # Limpieza de la llave PEM para evitar errores de carga
-        fb_creds["private_key"] = fb_creds["private_key"].replace("\\n", "\n").strip()
+        # Cargamos los secretos de la sección [firebase]
+        secrets_dict = dict(st.secrets["firebase"])
+        # Limpiamos posibles saltos de línea mal formateados
+        secrets_dict["private_key"] = secrets_dict["private_key"].replace("\\n", "\n")
         
-        cred = credentials.Certificate(fb_creds)
+        cred = credentials.Certificate(secrets_dict)
         firebase_admin.initialize_app(cred)
     except Exception as e:
-        st.error(f"Error en la configuración de Firebase: {e}")
-        st.info("Revisa que los Secrets estén bien pegados.")
+        st.error(f"Error crítico en Firebase: {e}")
+        st.info("Asegúrate de haber guardado los Secrets con comillas triples.")
         st.stop()
 
 db = firestore.client()
 
-# --- 3. ESTILO VISUAL ---
-st.markdown("""
-    <style>
-    .stApp { background: linear-gradient(135deg, #00c6ff, #0072ff); }
-    .login-card { 
-        background: white; padding: 2rem; border-radius: 15px; 
-        box-shadow: 0 10px 25px rgba(0,0,0,0.2); color: #333; 
-    }
-    </style>
-""", unsafe_allow_html=True)
-
-# --- 4. LÓGICA DE LOGIN ---
+# 3. Interfaz de Login
 if not st.session_state.user:
-    st.markdown('<div class="login-card">', unsafe_allow_html=True)
-    st.title("🚀 ZTCHY PRO")
-    st.subheader("SEEKER v6")
-
-    # Configuración de Google
+    st.title("🚀 ZTCHY PRO - Acceso")
+    
+    # Datos de Google
     client_id = st.secrets["google_client_id"]
-    # IMPORTANTE: Este link debe ser igual al de tu consola de Google
+    # Este link debe terminar en / para coincidir con tu consola
     redirect_uri = "https://appappppy-43nnqkr6ctadmkdomd2nxc.streamlit.app/"
     
     auth_url = (
@@ -56,38 +43,36 @@ if not st.session_state.user:
         f"prompt=select_account"
     )
 
-    # BOTÓN HTML PARA CARGAR EN LA MISMA PESTAÑA (_self)
+    # Botón de Google que carga en la misma pestaña
     st.markdown(f"""
         <a href="{auth_url}" target="_self" style="
             text-decoration: none; display: block; text-align: center;
-            padding: 15px; background-color: #4285F4; color: white;
-            border-radius: 10px; font-weight: bold; margin-bottom: 20px;
-        ">🌐 Ingresar con Google</a>
+            padding: 12px; background-color: #4285F4; color: white;
+            border-radius: 8px; font-weight: bold; margin: 20px 0;
+        ">Entrar con Google</a>
     """, unsafe_allow_html=True)
 
-    st.write("--- o usa acceso manual ---")
-    u_in = st.text_input("Usuario").upper()
-    p_in = st.text_input("Contraseña", type="password")
+    st.divider()
     
-    if st.button("Acceder", use_container_width=True):
-        doc = db.collection("COLECCION").document(u_in).get()
-        if doc.exists and doc.to_dict().get("PASSWORD") == p_in:
+    # Acceso manual
+    user_input = st.text_input("Usuario").upper()
+    pass_input = st.text_input("Contraseña", type="password")
+    
+    if st.button("Ingresar", use_container_width=True):
+        doc = db.collection("USUARIOS").document(user_input).get()
+        if doc.exists and doc.to_dict().get("PASSWORD") == pass_input:
             st.session_state.user = doc.to_dict()
             st.rerun()
         else:
-            st.error("Credenciales incorrectas.")
-    st.markdown('</div>', unsafe_allow_html=True)
+            st.error("Usuario o contraseña no válidos.")
 
-# --- 5. PANEL PRINCIPAL ---
+# 4. Panel Principal
 else:
-    user = st.session_state.user
-    st.sidebar.title(f"Hola, {user.get('USERNAME', 'ZATOCHY')}")
-    st.sidebar.metric("Créditos", f"S/ {user.get('creditos', 0)}")
-    
-    if st.sidebar.button("Cerrar Sesión"):
+    u = st.session_state.user
+    st.sidebar.title(f"Bienvenido, {u.get('USERNAME', 'Usuario')}")
+    if st.sidebar.button("Salir"):
         st.session_state.user = None
         st.rerun()
-
-    st.title("🔎 Panel de Búsquedas")
-    st.success(f"Conectado como: {user.get('NAMES')}")
-    st.write("Selecciona una herramienta en el menú lateral.")
+    
+    st.header("🔎 Panel Seeker v6")
+    st.write(f"Has iniciado sesión como: **{u.get('NAMES', 'Sin Nombre')}**")
