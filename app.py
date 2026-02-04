@@ -1,11 +1,13 @@
 import streamlit as st
 import firebase_admin
 from firebase_admin import credentials, auth
+import requests
+import random
 
-# CONFIGURACIÓN DE PÁGINA
+# --- CONFIGURACIÓN DE PÁGINA ---
 st.set_page_config(page_title="ZTCHY-PRO", page_icon="🛡️")
 
-# ESTILO VISUAL (Fondo Machu Picchu + Tarjeta Blanca)
+# --- ESTILO VISUAL ---
 st.markdown("""
     <style>
     .stApp {
@@ -26,12 +28,10 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# INICIALIZACIÓN DE FIREBASE
+# --- INICIALIZACIÓN DE FIREBASE ---
 if not firebase_admin._apps:
     try:
-        # Extraemos la clave privada manejando correctamente los saltos de línea \n
         private_key = st.secrets["firebase"]["private_key"].replace('\\n', '\n')
-        
         fb_credentials = {
             "type": st.secrets["firebase"]["type"],
             "project_id": st.secrets["firebase"]["project_id"],
@@ -47,13 +47,32 @@ if not firebase_admin._apps:
         cred = credentials.Certificate(fb_credentials)
         firebase_admin.initialize_app(cred)
     except Exception as e:
-        st.error(f"Error de configuración: {e}")
+        st.error(f"Error de Firebase: {e}")
 
-# LÓGICA DE NAVEGACIÓN
+# --- FUNCIONES DE APOYO ---
+def send_otp_email(target_email, code):
+    """Envía el código de 6 dígitos usando la API de Resend"""
+    url = "https://api.resend.com/emails"
+    headers = {
+        "Authorization": f"Bearer {st.secrets['resend_api_key']}",
+        "Content-Type": "application/json"
+    }
+    data = {
+        "from": "ZTCHY PRO <onboarding@resend.dev>",
+        "to": target_email,
+        "subject": "Tu código de verificación ZTCHY",
+        "html": f"<h2>Confirma tu registro</h2><p>Tu código de verificación es:</p><h1>{code}</h1>"
+    }
+    return requests.post(url, headers=headers, json=data)
+
+# --- LÓGICA DE NAVEGACIÓN ---
 if "view" not in st.session_state: st.session_state.view = "login"
+if "otp_code" not in st.session_state: st.session_state.otp_code = None
+if "temp_user" not in st.session_state: st.session_state.temp_user = {}
 
 st.markdown('<div class="auth-card">', unsafe_allow_html=True)
 
+# VISTA: LOGIN
 if st.session_state.view == "login":
     st.markdown("<h2>Iniciar Sesión</h2>", unsafe_allow_html=True)
     user_email = st.text_input("Correo Electrónico")
@@ -61,35 +80,63 @@ if st.session_state.view == "login":
     
     if st.button("INGRESAR"):
         try:
-            # Verificamos si el usuario existe en Firebase
-            user = auth.get_user_by_email(user_email)
-            st.success(f"¡Bienvenido, {user.email}!")
+            auth.get_user_by_email(user_email)
+            st.success("¡Acceso concedido!")
             st.balloons()
         except:
-            st.error("Credenciales inválidas o usuario no registrado.")
+            st.error("Usuario no encontrado.")
             
-    if st.button("¿No tienes cuenta? Regístrate aquí"):
+    if st.button("¿No tienes cuenta? Regístrate"):
         st.session_state.view = "register"
         st.rerun()
 
+# VISTA: REGISTRO
 elif st.session_state.view == "register":
     st.markdown("<h2>Crear Nueva Cuenta</h2>", unsafe_allow_html=True)
-    reg_email = st.text_input("Tu mejor Email")
-    reg_pass = st.text_input("Contraseña (mínimo 6 caracteres)", type="password")
+    reg_email = st.text_input("Email")
+    reg_pass = st.text_input("Contraseña (min. 6)", type="password")
     
-    if st.button("REGISTRARME"):
+    if st.button("ENVIAR CÓDIGO"):
         if len(reg_pass) < 6:
-            st.warning("La contraseña debe tener al menos 6 caracteres.")
+            st.warning("Contraseña muy corta.")
         else:
-            try:
-                user = auth.create_user(email=reg_email, password=reg_pass)
-                st.success("✅ ¡Cuenta creada exitosamente!")
-                st.info("Ahora puedes volver para iniciar sesión.")
-            except Exception as e:
-                st.error(f"Error en el registro: {e}")
-                
-    if st.button("Volver al Login"):
+            # Generamos código y guardamos datos temporalmente
+            st.session_state.otp_code = str(random.randint(100000, 999999))
+            st.session_state.temp_user = {"email": reg_email, "pass": reg_pass}
+            
+            # Enviamos el correo
+            response = send_otp_email(reg_email, st.session_state.otp_code)
+            if response.status_code == 201 or response.status_code == 200:
+                st.success("¡Código enviado! Revisa tu correo.")
+                st.session_state.view = "verify"
+                st.rerun()
+            else:
+                st.error("Error enviando el correo. Verifica tu API Key de Resend.")
+
+    if st.button("Volver"):
         st.session_state.view = "login"
         st.rerun()
+
+# VISTA: VERIFICACIÓN OTP
+elif st.session_state.view == "verify":
+    st.markdown("<h2>Verificar Código</h2>", unsafe_allow_html=True)
+    st.write(f"Enviamos un código a: {st.session_state.temp_user['email']}")
+    input_code = st.text_input("Ingresa los 6 dígitos")
+    
+    if st.button("CONFIRMAR"):
+        if input_code == st.session_state.otp_code:
+            try:
+                # Si el código es correcto, recién ahí lo creamos en Firebase
+                auth.create_user(
+                    email=st.session_state.temp_user['email'],
+                    password=st.session_state.temp_user['pass']
+                )
+                st.success("✅ ¡Cuenta verificada y creada!")
+                st.session_state.view = "login"
+                st.rerun()
+            except Exception as e:
+                st.error(f"Error al crear usuario: {e}")
+        else:
+            st.error("Código incorrecto.")
 
 st.markdown('</div>', unsafe_allow_html=True)
