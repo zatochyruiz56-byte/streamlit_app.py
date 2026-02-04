@@ -22,7 +22,7 @@ def run():
                 position: absolute; 
                 top: -600px;    /* Ajuste superior basado en tu código anterior */
                 left: 50%;      /* Centramos el punto de anclaje */
-                margin-left: -800px; /* Empujamos 800px a la izquierda para esconder el borde izquierdo real */
+                margin-left: -900px; /* Empujamos 800px a la izquierda para esconder el borde izquierdo real */
                 border: none;"
             scrolling="no">
         </iframe>
