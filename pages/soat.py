@@ -20,7 +20,7 @@ def run():
                 width: 1600px; 
                 height: 3000px; 
                 position: absolute; 
-                top: -750px;       /* Ajustado para compensar el zoom */
+                top: -770px;       /* Ajustado para compensar el zoom */
                 left: 80%; 
                 margin-left: -1040px; /* Empujado más a la izquierda para borrar el anuncio */
                 border: none;
