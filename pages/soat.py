@@ -15,7 +15,7 @@ def run():
                 height: 1500px; 
                 position: absolute; 
                 top: -560px; 
-                left: 60%; 
+                left: 70%; 
                 margin-left: -400px; 
                 border: none;"
             scrolling="no">
