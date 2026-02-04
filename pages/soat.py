@@ -4,11 +4,11 @@ import streamlit.components.v1 as components
 def run():
     st.markdown("<h2 style='text-align: center;'>🛡️ Consulta de Historial SOAT</h2>", unsafe_allow_html=True)
 
-    # --- VISOR CON ZOOM Y RECORTE DE COSTADOS ---
+    # --- VISOR ORIGINAL (Restaurado a tus medidas previas) ---
     html_apeseg = """
     <div style="
         width: 100%; 
-        height: 520px; 
+        height: 500px; 
         overflow: hidden; 
         border: 2px solid #1E3A8A; 
         border-radius: 12px; 
@@ -17,22 +17,19 @@ def run():
         
         <iframe src="https://www.apeseg.org.pe/consultas-soat/" 
             style="
-                width: 1600px; 
-                height: 3000px; 
+                width: 1000px; 
+                height: 1500px; 
                 position: absolute; 
-                top: -800px;       /* Ajustado para compensar el zoom */
-                left: 80%; 
-                margin-left: -1040px; /* Empujado más a la izquierda para borrar el anuncio */
-                border: none;
-                transform: scale(1.1); /* Zoom al 130% para llenar la pantalla */
-                transform-origin: top left;
-            "
+                top: -560px;       /* Oculta el encabezado oficial */
+                left: 60%; 
+                margin-left: -400px; /* Centra el contenido horizontalmente */
+                border: none;"
             scrolling="no">
         </iframe>
     </div>
     """
     
-    components.html(html_apeseg, height=540)
+    components.html(html_apeseg, height=520)
 
 if __name__ == "__main__":
     run()
