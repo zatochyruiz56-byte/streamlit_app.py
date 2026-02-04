@@ -24,7 +24,7 @@ def run():
                 left: 80%; 
                 margin-left: -1040px; /* Empujado más a la izquierda para borrar el anuncio */
                 border: none;
-                transform: scale(1.3); /* Zoom al 130% para llenar la pantalla */
+                transform: scale(1.1); /* Zoom al 130% para llenar la pantalla */
                 transform-origin: top left;
             "
             scrolling="no">
