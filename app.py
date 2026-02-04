@@ -1,163 +1,164 @@
 import streamlit as st
 from supabase import create_client
 
-# 1. CONFIGURACIÓN DE PÁGINA Y ESTILOS
+# 1. CONFIGURACIÓN DE PÁGINA
 st.set_page_config(page_title="ZTCHY-PRO", page_icon="🛡️", layout="centered")
 
-# Inyectar CSS para eliminar la línea blanca superior, fondo y tarjetas
+# 2. ESTILOS CSS PERSONALIZADOS (Diseño de tarjetas blancas y letras visibles)
 st.markdown("""
     <style>
-    /* Eliminar línea blanca superior y menús innecesarios */
-    header {visibility: hidden;}
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
-    .stAppDeployButton {display:none;}
+    /* Ocultar elementos nativos de Streamlit */
+    header, footer, .stAppDeployButton, #MainMenu {visibility: hidden;}
     
-    /* Fondo de Machu Picchu con overlay oscuro para contraste */
+    /* Fondo de Machu Picchu fijo */
     .stApp {
-        background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), 
+        background: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), 
                     url('https://images.unsplash.com/photo-1526392060635-9d6019884377?q=80&w=2070');
         background-size: cover;
         background-position: center;
+        background-attachment: fixed;
     }
 
-    /* Tarjetas Blancas (Auth Cards) */
+    /* Contenedor de la Tarjeta Blanca */
     .auth-card {
-        background-color: rgba(255, 255, 255, 0.95);
-        padding: 30px;
-        border-radius: 15px;
-        box-shadow: 0 10px 25px rgba(0,0,0,0.3);
-        color: #1e1e1e; /* Letras oscuras para visibilidad */
-        margin-top: 20px;
+        background-color: #f8f9fa;
+        padding: 40px;
+        border-radius: 10px;
+        box-shadow: 0 15px 35px rgba(0,0,0,0.5);
+        margin: auto;
+        max-width: 450px;
     }
 
-    /* Estilo de los Inputs y Textos */
-    .stTextInput label {
-        color: #1e1e1e !important;
-        font-weight: bold;
+    /* Forzar visibilidad de textos (Negro/Gris Oscuro) */
+    .stMarkdown, p, h2, h3, label {
+        color: #1f1f1f !important;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     }
     
-    h2, h3, p {
-        color: #1e1e1e !important;
-        text-align: center;
+    h2 { text-align: center; font-weight: 700; margin-bottom: 20px; }
+
+    /* Botones Púrpuras */
+    div.stButton > button {
+        background-color: #6c5ce7 !important;
+        color: white !important;
+        border-radius: 5px !important;
+        border: none !important;
+        width: 100%;
+        height: 45px;
+        font-weight: bold;
+        text-transform: uppercase;
+        margin-top: 10px;
+    }
+    
+    div.stButton > button:hover {
+        background-color: #5b4bc4 !important;
+        border: none !important;
     }
 
-    /* Botones estilo Púrpura */
-    .stButton > button {
-        width: 100%;
-        background: #6c5ce7;
-        color: white !important;
-        font-weight: bold;
-        border-radius: 8px;
-        border: none;
-        height: 3em;
-        transition: 0.3s;
-    }
-    .stButton > button:hover {
-        background: #5b4bc4;
-        border: none;
+    /* Inputs con bordes sutiles */
+    .stTextInput input {
+        border-radius: 5px !important;
+        border: 1px solid #ddd !important;
     }
     </style>
     """, unsafe_allow_html=True)
 
-# 2. CONEXIÓN A SUPABASE
+# 3. CONEXIÓN A SUPABASE
 try:
-    url = st.secrets["SUPABASE_URL"]
-    key = st.secrets["SUPABASE_SECRET_KEY"] 
-    supabase = create_client(url, key)
+    supabase = create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_SECRET_KEY"])
 except:
-    st.error("Error de configuración: Revisa tus Secrets en Streamlit.")
+    st.error("Error: Configura los Secrets en Streamlit.")
     st.stop()
 
-# 3. LÓGICA DE ESTADO
+# 4. MANEJO DE ESTADOS (Para mostrar una pantalla a la vez)
 if "view" not in st.session_state: st.session_state.view = "login"
 if "user" not in st.session_state: st.session_state.user = None
 if "email_temp" not in st.session_state: st.session_state.email_temp = ""
 
-# 4. INTERFAZ DE USUARIO
-with st.container():
-    st.markdown('<div class="auth-card">', unsafe_allow_html=True)
+# --- LÓGICA DE INTERFAZ ---
+
+# Contenedor principal para centrar el logo y la tarjeta
+st.image("https://i.imgur.com/vHqY7Z8.png", width=80) # Aquí puedes subir tu logo 'Z' a un host y poner el link
+st.markdown("<h1 style='text-align:center; color:white; margin-bottom:20px;'>ZTCHY-PRO</h1>", unsafe_allow_html=True)
+
+# Inicio de Tarjeta Blanca
+st.markdown('<div class="auth-card">', unsafe_allow_html=True)
+
+# --- PANTALLA 1: LOGIN ---
+if st.session_state.view == "login" and not st.session_state.user:
+    st.markdown("<h2>Iniciar Sesión</h2>", unsafe_allow_html=True)
+    l_email = st.text_input("Correo electrónico")
+    l_pass = st.text_input("Contraseña", type="password")
     
-    # LOGO
-    st.markdown("<h1 style='text-align:center; color:#6c5ce7;'>🛡️ ZTCHY-PRO</h1>", unsafe_allow_html=True)
-
-    # --- VISTA: LOGIN ---
-    if st.session_state.view == "login":
-        st.markdown("<h2>Iniciar Sesión</h2>", unsafe_allow_html=True)
-        email = st.text_input("Correo Electrónico", key="l_email")
-        password = st.text_input("Contraseña", type="password", key="l_pass")
-        
-        if st.button("Ingresar"):
-            try:
-                res = supabase.auth.sign_in_with_password({"email": email, "password": password})
-                if res.user:
-                    p = supabase.table("perfiles").select("*").eq("id", res.user.id).single().execute()
-                    st.session_state.user = p.data
-                    st.rerun()
-            except: st.error("Credenciales incorrectas o cuenta no verificada.")
-        
-        st.markdown("<p>¿No tienes cuenta?</p>", unsafe_allow_html=True)
-        if st.button("Crear Cuenta Nueva"):
-            st.session_state.view = "register"
-            st.rerun()
-
-    # --- VISTA: REGISTRO ---
-    elif st.session_state.view == "register":
-        st.markdown("<h2>Crear Cuenta</h2>", unsafe_allow_html=True)
-        u_name = st.text_input("Nombre de Usuario")
-        u_email = st.text_input("Correo Electrónico")
-        u_pass = st.text_input("Contraseña", type="password")
-        
-        if st.button("Registrar Ahora"):
-            try:
-                res = supabase.auth.sign_up({"email": u_email, "password": u_pass})
-                if res.user:
-                    supabase.table("perfiles").insert({
-                        "id": res.user.id, "username": u_name, "email": u_email, "saldo": 0.0
-                    }).execute()
-                    st.session_state.email_temp = u_email
-                    st.session_state.view = "verify"
-                    st.rerun()
-            except Exception as e:
-                st.error(f"Error: {e}")
-        
-        if st.button("⬅ Volver al Login"):
-            st.session_state.view = "login"
-            st.rerun()
-
-    # --- VISTA: VERIFICACIÓN (CÓDIGO OTP) ---
-    elif st.session_state.view == "verify":
-        st.markdown("<h2>Verifica tu Email</h2>", unsafe_allow_html=True)
-        st.markdown(f"<p>Ingresa el código enviado a:<br><b>{st.session_state.email_temp}</b></p>", unsafe_allow_html=True)
-        
-        otp_code = st.text_input("Código de 6 dígitos", max_chars=6)
-        
-        if st.button("Validar Cuenta"):
-            try:
-                supabase.auth.verify_otp({
-                    "email": st.session_state.email_temp, 
-                    "token": otp_code, 
-                    "type": 'signup'
-                })
-                st.success("¡Cuenta activada! Ya puedes loguearte.")
-                st.session_state.view = "login"
+    if st.button("Ingresar"):
+        try:
+            res = supabase.auth.sign_in_with_password({"email": l_email, "password": l_pass})
+            if res.user:
+                p = supabase.table("perfiles").select("*").eq("id", res.user.id).single().execute()
+                st.session_state.user = p.data
                 st.rerun()
-            except:
-                st.error("Código incorrecto o expirado.")
-        
-        if st.button("⬅ Reintentar Registro"):
-            st.session_state.view = "register"
-            st.rerun()
+        except: st.error("Error: Verifica tus datos o activa tu cuenta.")
+    
+    if st.button("¿No tienes cuenta? Regístrate"):
+        st.session_state.view = "register"
+        st.rerun()
 
-    # --- VISTA: PANEL PRINCIPAL ---
-    elif st.session_state.view == "main" or st.session_state.user:
-        st.markdown(f"<h2>Bienvenido, {st.session_state.user['username']}</h2>", unsafe_allow_html=True)
-        st.metric(label="Saldo Disponible", value=f"${st.session_state.user['saldo']:.2f}")
-        
-        if st.button("Cerrar Sesión"):
-            supabase.auth.sign_out()
-            st.session_state.user = None
+# --- PANTALLA 2: REGISTRO ---
+elif st.session_state.view == "register":
+    st.markdown("<h2>Crear Cuenta</h2>", unsafe_allow_html=True)
+    u_name = st.text_input("Nombre de Usuario")
+    u_email = st.text_input("Correo Electrónico")
+    u_pass = st.text_input("Contraseña", type="password")
+    
+    if st.button("Completar Registro"):
+        try:
+            res = supabase.auth.sign_up({"email": u_email, "password": u_pass})
+            if res.user:
+                supabase.table("perfiles").insert({
+                    "id": res.user.id, "username": u_name, "email": u_email, "saldo": 0.0
+                }).execute()
+                st.session_state.email_temp = u_email
+                st.session_state.view = "verify"
+                st.rerun()
+        except Exception as e:
+            st.error(f"Error: {e}")
+            
+    if st.button("Volver al Login"):
+        st.session_state.view = "login"
+        st.rerun()
+
+# --- PANTALLA 3: VERIFICACIÓN ---
+elif st.session_state.view == "verify":
+    st.markdown("<h2>Verifica tu Correo</h2>", unsafe_allow_html=True)
+    st.markdown(f"<p style='text-align:center;'>Ingresa el código enviado a:<br><b>{st.session_state.email_temp}</b></p>", unsafe_allow_html=True)
+    
+    otp = st.text_input("Código de 6 dígitos", max_chars=6)
+    
+    if st.button("Validar Cuenta"):
+        try:
+            supabase.auth.verify_otp({"email": st.session_state.email_temp, "token": otp, "type": 'signup'})
+            st.success("¡Cuenta activada!")
             st.session_state.view = "login"
             st.rerun()
+        except:
+            st.error("Código incorrecto.")
+            
+    if st.button("Cancelar"):
+        st.session_state.view = "login"
+        st.rerun()
 
-    st.markdown('</div>', unsafe_allow_html=True)
+# --- PANTALLA 4: PANEL PRINCIPAL (Dashboard) ---
+elif st.session_state.user:
+    st.markdown(f"<h2>Bienvenido, {st.session_state.user['username']}</h2>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align:center;'>Tu panel de control seguro.</p>", unsafe_allow_html=True)
+    
+    st.metric(label="Saldo en Cuenta", value=f"${st.session_state.user['saldo']:.2f}")
+    
+    if st.button("Cerrar Sesión"):
+        supabase.auth.sign_out()
+        st.session_state.user = None
+        st.session_state.view = "login"
+        st.rerun()
+
+# Cierre de Tarjeta Blanca
+st.markdown('</div>', unsafe_allow_html=True)
